@@ -1,0 +1,36 @@
+.emfluence div.message {
+	padding: 10px;
+}
+
+.emfluence div.message strong {
+	text-transform: uppercase;
+}
+
+.emfluence .widefat h3 {
+	cursor: pointer;
+	margin: 0;
+	padding: 10px;
+	background-color: #F1F1F1;
+	background-image: -ms-linear-gradient(top,#F9F9F9,#ECECEC);
+	background-image: -moz-linear-gradient(top,#F9F9F9,#ECECEC);
+	background-image: -o-linear-gradient(top,#F9F9F9,#ECECEC);
+	background-image: -webkit-gradient(linear,left top,left bottom,from(#F9F9F9),to(#ECECEC));
+	background-image: -webkit-linear-gradient(top,#F9F9F9,#ECECEC);
+	background-image: linear-gradient(top,#F9F9F9,#ECECEC);
+}
+
+.emfluence .section-block {
+	padding: 0 10px;
+}
+.emfluence .section-block.closed {
+	display: none;
+}
+
+.emfluence #account-settings input {
+	width: 300px;
+}
+
+.emfluence label {
+	display: inline-block;
+	width: 100px;
+}
