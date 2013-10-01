@@ -1,5 +1,14 @@
 <?php
 
+/**
+ * TODO: note below from Tiffany, based on feedback from a client.
+ *  Only public groups are pulled into the widget. However, I think
+ *  it would be best to make them enter in the list IDs they want
+ *  because making a group public also displays it on the unsubscribe
+ *  page which people may not want. Just add this as a note for when
+ *  this is cleaned up for giving out to clients.
+ */
+
 
 /**
  * Wordpress Hooks
@@ -147,7 +156,7 @@ class emfluence_email_signup extends WP_Widget {
     $output .= '<input type="hidden" name="source" value="' . $current_page_url . '" />' . "\n";
     $output .= '<input type="hidden" name="lists" value="' . $lists . '" />' . "\n";
 
-    usort($instance['fields'], 'emfluence_field_order_sort');	
+    usort($instance['fields'], 'emfluence_field_order_sort');
     foreach( $instance['fields'] as $key => $field ){
       if( $field['display'] ){
         switch( $field['type'] ){
