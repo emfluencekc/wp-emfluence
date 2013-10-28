@@ -168,7 +168,7 @@ class emfluence_email_signup extends WP_Widget {
                 $output .= '<span class="required">*</span>';
               }
               $output .= '</label>' . "\n";
-              $output .=   '<input type="text" name="' . $field['field_name'] . '" id="emfluence_' . $key . '" value="' . $values[$field['field_name']] . '" />' . "\n";
+              $output .=   '<input placeholder="' . translate($field['label']) . '" type="text" name="' . $field['field_name'] . '" id="emfluence_' . $key . '" value="' . $values[$field['field_name']] . '" />' . "\n";
             $output .= '</div>' . "\n";
           break;
         }
