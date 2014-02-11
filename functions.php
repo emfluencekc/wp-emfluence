@@ -159,17 +159,19 @@ class emfluence_email_signup extends WP_Widget {
     usort($instance['fields'], 'emfluence_field_order_sort');
     foreach( $instance['fields'] as $key => $field ){
       if( $field['display'] ){
+        $label = translate($field['label']);
+        $placeholder = translate( str_replace(':', '', $field['label']) );
         switch( $field['type'] ){
         	case 'text':
           default:
             $output .= '<div class="field row">' . "\n";
-              $output .= '<label for="emfluence_' . $key . '">' . translate($field['label']) . '';
+              $output .= '<label for="emfluence_' . $key . '">' . $label . '';
               if( $field['required'] ){
                 $output .= '<span class="required">*</span>';
               }
               $input_type = ($field['field_name']=='email') ? 'email' : 'text';
               $output .= '</label>' . "\n";
-              $output .=   '<input placeholder="' . translate($field['label']) . '" type="' . $input_type . '" name="' . $field['field_name'] . '" id="emfluence_' . $key . '" value="' . $values[$field['field_name']] . '" />' . "\n";
+              $output .=   '<input placeholder="' . $placeholder . '" type="' . $input_type . '" name="' . $field['field_name'] . '" id="emfluence_' . $key . '" value="' . $values[$field['field_name']] . '" />' . "\n";
             $output .= '</div>' . "\n";
           break;
         }
