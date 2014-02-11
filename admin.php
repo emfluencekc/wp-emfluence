@@ -69,7 +69,7 @@ function emfluence_settings_page() {
 		</div>
 	<?php endif; ?>
 
-	<p>Welcome! This is where a good description of what the user can do here would go...</p>
+	<p>Welcome! Please enter your account's api credentials below to begin. Once authenticated, you can create as many widgets as you need. Settings are saved per widget.</p>
 
   <form method="post">
 
