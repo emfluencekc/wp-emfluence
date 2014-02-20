@@ -88,10 +88,10 @@ class emfluence_email_signup extends WP_Widget {
       }
 
       foreach( $instance['fields'] as $key => $field ){
-      	if( $field['required'] && empty($_POST[$key]) ){
+      	if( $field['required'] && empty( $values[$key] ) ){
           $valid = FALSE;
           $messages[] = array( 'type' => 'error', 'value' => __( $field['required_message'] ) );
-      	} elseif ( $key == 'email' && !emfluence_validate_email($value) ){
+      	} elseif ( $key == 'email' && !emfluence_validate_email( $values[$key] ) ){
           $valid = FALSE;
           $messages[] = array( 'type' => 'error', 'value' => __('Invalid email address.') );
       	}
@@ -113,14 +113,11 @@ class emfluence_email_signup extends WP_Widget {
           if ( $title )
 						$output .= $before_title . '<span>' . $title . '</span>' . $after_title;
 
-          // Output all messages
-          if( !empty($messages) ){
-            $output .= '<ul class="messages">';
-            foreach($messages as $message){
-              $output .= '<li class="message ' . $message['type'] . '">' . translate($message['value']) . '</li>';
-            }
-            $output .= '</ul>';
-          }
+          ob_start();
+          get_template_part('emfluence/success');
+          $message = ob_get_clean();
+          if(empty($message)) $message = file_get_contents( 'theme/success.php', TRUE);
+          $output .= $message;
 
 					$output .= '</div></div></form>' . $after_widget;
 
