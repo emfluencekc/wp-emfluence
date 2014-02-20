@@ -178,7 +178,7 @@ class emfluence_email_signup extends WP_Widget {
       }
     }
 
-    $output .= '<div class="row"><input type="submit" class="submit" /></div>' . "\n";
+    $output .= '<div class="row"><input type="submit" class="submit" value="' . htmlentities( $instance['submit'], ENT_QUOTES ) . '" /></div>' . "\n";
     $output .= '</form>' . "\n";
 
     /* After widget (defined by themes). */
@@ -212,6 +212,7 @@ class emfluence_email_signup extends WP_Widget {
       'title' => 'Email Signup',
       'text' => '',
       'groups' => array(),
+      'submit' => 'Signup',
       'fields' => array(
         'first_name' => array(
           'name' => 'First Name',
@@ -347,6 +348,10 @@ class emfluence_email_signup extends WP_Widget {
     $output .= '<p>' . "\n";
     $output .=  '<label for="' . $this->get_field_id( 'text' ) . '">' . translate('Text') . ':</label>' . "\n";
     $output .=  '<textarea id="' . $this->get_field_id( 'text' ) . '" name="' . $this->get_field_name( 'text' ) . '" style="width:100%;" >' . $instance['text'] . '</textarea>' . "\n";
+    $output .= '</p>' . "\n";
+    $output .= '<p>' . "\n";
+    $output .=  '<label for="' . $this->get_field_id( 'submit' ) . '">' . translate('Submit button') . ':</label>' . "\n";
+    $output .=  '<input type="text" id="' . $this->get_field_id( 'submit' ) . '" name="' . $this->get_field_name( 'submit' ) . '" value="' . $instance['submit'] . '" style="width:100%;" />' . "\n";
     $output .= '</p>' . "\n";
 
     $output .= '<h3>' . translate('Groups') . '</h3>';
@@ -571,6 +576,7 @@ class emfluence_email_signup extends WP_Widget {
     // Clean up the free-form areas
     $instance['title'] = stripslashes($new_instance['title']);
     $instance['text'] = stripslashes($new_instance['text']);
+    $instance['submit'] = stripslashes($new_instance['submit']);
 
     // If the current user isn't allowed to use unfiltered HTML, filter it
     if ( !current_user_can('unfiltered_html') ) {
