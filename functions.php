@@ -1,23 +1,5 @@
 <?php
 
-/**
- * TODO: note below from Tiffany, based on feedback from a client.
- *  Only public groups are pulled into the widget. However, I think
- *  it would be best to make them enter in the list IDs they want
- *  because making a group public also displays it on the unsubscribe
- *  page which people may not want. Just add this as a note for when
- *  this is cleaned up for giving out to clients.
- */
-
-
-/**
- * Wordpress Hooks
- */
-
-function emfluence_load_widgets(){
-	register_widget( 'emfluence_email_signup' );
-}
-
 class emfluence_email_signup extends WP_Widget {
   function emfluence_email_signup(){
     /* Widget settings. */
@@ -27,7 +9,7 @@ class emfluence_email_signup extends WP_Widget {
     $control_ops = array( 'width' => 400, 'id_base' => 'emfluence_email_signup' );
 
     /* Create the widget. */
-    $this->WP_Widget( 'emfluence_email_signup', 'emfluence Email Signup', $widget_ops, $control_ops );
+    $this->WP_Widget( 'emfluence_email_signup', 'emfluence emailer Email Signup', $widget_ops, $control_ops );
   }
 
   function widget( $args, $instance ) {
@@ -81,6 +63,7 @@ class emfluence_email_signup extends WP_Widget {
      */
 
     if( !empty($_POST) && $_POST['action'] == 'email_signup' ){
+      $output = '';
       $valid = TRUE;
       // Set the field values in case there's an error
       foreach( $_POST as $key => $value ){
@@ -88,30 +71,56 @@ class emfluence_email_signup extends WP_Widget {
       }
 
       foreach( $instance['fields'] as $key => $field ){
-      	if( $field['required'] && empty( $values[$key] ) ){
+      	 if( $field['required'] && empty( $values[$key] ) ){
           $valid = FALSE;
           $messages[] = array( 'type' => 'error', 'value' => __( $field['required_message'] ) );
-      	} elseif ( $key == 'email' && !emfluence_validate_email( $values[$key] ) ){
+      	 } elseif ( $key == 'email' && !emfluence_validate_email( $values[$key] ) ){
           $valid = FALSE;
           $messages[] = array( 'type' => 'error', 'value' => __('Invalid email address.') );
-      	}
+      	 }
       }
 
       if( $valid ){
-      	// Try to subscribe them
-        $result = emfluence_api_subscription_start($_POST);
-        if( !$result['success'] ){
-          $messages += $result['messages'];
+        $success = FALSE;
+        $messages = array();
+      	 // Try to subscribe them
+        $options = get_option('emfluence_global');
+        $api = emfluence_get_api($options['api_key']);
+
+        $data = array();
+        $data['groupIDs'] = !empty($_POST['groups'])? $_POST['groups'] : '';
+        $data['originalSource'] = trim( $_POST['source'] );
+        $data['firstName'] = !empty( $_POST['first_name'] )? trim( $_POST['first_name'] ) : '';
+        $data['lastName'] = !empty( $_POST['last_name'] )? trim( $_POST['last_name'] ) : '';
+        $data['title'] = !empty( $_POST['title'] )? trim( $_POST['title'] ) : '';
+        $data['company'] = !empty( $_POST['company'] )? trim( $_POST['company'] ) : '';
+        // $data['phone'] = trim( $form_data['phone_number'] );
+        $data['email'] = trim( $_POST['email'] );
+        $data['custom1'] = !empty( $_POST['custom_1'] )? trim( $_POST['custom_1'] ) : '';
+        $data['custom2'] = !empty( $_POST['custom_2'] )? trim( $_POST['custom_2'] ) : '';
+        $data['custom3'] = !empty( $_POST['custom_3'] )? trim( $_POST['custom_3'] ) : '';
+        $data['custom4'] = !empty( $_POST['custom_4'] )? trim( $_POST['custom_4'] ) : '';
+        $data['custom5'] = !empty( $_POST['custom_5'] )? trim( $_POST['custom_5'] ) : '';
+        $data['custom6'] = !empty( $_POST['custom_6'] )? trim( $_POST['custom_6'] ) : '';
+        $data['custom7'] = !empty( $_POST['custom_7'] )? trim( $_POST['custom_7'] ) : '';
+        $data['custom8'] = !empty( $_POST['custom_8'] )? trim( $_POST['custom_8'] ) : '';
+        $data['custom9'] = !empty( $_POST['custom_9'] )? trim( $_POST['custom_9'] ) : '';
+        $data['custom10'] = !empty( $_POST['custom_10'] )? trim( $_POST['custom_10'] ) : '';
+        $result = $api->contacts_save($data);
+
+        if( !$result->success ){
+          $success = FALSE;
+          $messages[] = array('type' => 'error', 'value' => __('An error occurred contacting the email service.'));
         } else {
-        	$messages[] = array( 'type' => 'success', 'value' => __('Subscription started!') );
-          $output = '';
+          $success = TRUE;
+        }
 
-          /* Before widget (defined by themes). */
-					$output .= $before_widget . '<form class="mail-form" method="post"><div class="holder"><div class="frame">';
+        /* Before widget (defined by themes). */
+					   $output .= $before_widget . '<form class="mail-form" method="post"><div class="holder"><div class="frame">';
 
-          /* Title of widget (before and after defined by themes). */
-          if ( $title )
-						$output .= $before_title . '<span>' . $title . '</span>' . $after_title;
+        /* Title of widget (before and after defined by themes). */
+        if ( $title ){
+						    $output .= $before_title . '<span>' . $title . '</span>' . $after_title;
 
           ob_start();
           get_template_part('emfluence/success');
@@ -119,7 +128,7 @@ class emfluence_email_signup extends WP_Widget {
           if(empty($message)) $message = file_get_contents( 'theme/success.php', TRUE);
           $output .= $message;
 
-					$output .= '</div></div></form>' . $after_widget;
+          $output .= '</div></div></form>' . $after_widget;
 
           print $output;
           return;
@@ -127,20 +136,19 @@ class emfluence_email_signup extends WP_Widget {
       }
     }
 
-    $output = '';
-
     /* Before widget (defined by themes). */
-		$output .= $before_widget . '<form class="mail-form" method="post"><div class="holder"><div class="frame">';
+		  $output .= $before_widget . '<form class="mail-form" method="post"><div class="holder"><div class="frame">';
 
     /* Title of widget (before and after defined by themes). */
-    if ( $title )
-			$output .= $before_title . '<span>' . $title . '</span>' . $after_title;
+    if ( $title ) {
+      $output .= $before_title . '<span>' . $title . '</span>' . $after_title;
+    }
 
     // Output all messages
     if( !empty($messages) ){
       $output .= '<ul class="messages">';
       foreach($messages as $message){
-        $output .= '<li class="message ' . $message['type'] . '">' . translate($message['value']) . '</li>';
+        $output .= '<li class="message ' . $message['type'] . '">' . __($message['value']) . '</li>';
       }
       $output .= '</ul>';
     }
@@ -151,13 +159,18 @@ class emfluence_email_signup extends WP_Widget {
     $output .= '<form action="' . $current_page_url . '" method="POST">' . "\n";
     $output .= '<input type="hidden" name="action" value="email_signup" />' . "\n";
     $output .= '<input type="hidden" name="source" value="' . $current_page_url . '" />' . "\n";
-    $output .= '<input type="hidden" name="lists" value="' . $lists . '" />' . "\n";
+    $output .= '<input type="hidden" name="groups" value="' . implode(',', $instance['groups']) . '" />' . "\n";
 
-    usort($instance['fields'], 'emfluence_field_order_sort');
+    usort($instance['fields'], function($a, $b){
+      if($a['order'] == $b['order']){
+        return 0;
+      }
+      return ($a['order'] < $b['order']) ? -1 : 1;
+    });
     foreach( $instance['fields'] as $key => $field ){
       if( $field['display'] ){
-        $label = translate($field['label']);
-        $placeholder = translate( str_replace(':', '', $field['label']) );
+        $label = __($field['label']);
+        $placeholder = __( str_replace(':', '', $field['label']) );
         switch( $field['type'] ){
         	case 'text':
           default:
@@ -179,7 +192,7 @@ class emfluence_email_signup extends WP_Widget {
     $output .= '</form>' . "\n";
 
     /* After widget (defined by themes). */
-		$output .= '</div></div></form>' . $after_widget;
+		  $output .= '</div></div></form>' . $after_widget;
 
     echo $output;
 
@@ -187,60 +200,56 @@ class emfluence_email_signup extends WP_Widget {
   }
 
   public function form( $instance ) {
+    $options = get_option('emfluence_global');
+    $api = emfluence_get_api($options['api_key']);
 
-    // Todo: Prevent plugin from displaying if not authenticated
-    if( !get_option('emfluence_authenticated', FALSE) ){
-      $output = '<h3>Authentication Failed</h3>';
-      $otuput .= '<p>Please enter your client and api keys to continue.</p>';
+    if( !$api->ping() ){
+      $output = '<h3>' . __('Authentication Failed') . '</h3>';
+      $output .= '<p>' . __('Please check your api key to continue.') . '</p>';
       print $output;
       return;
     }
 
-    $groups_search = emfluence_api_groups_search();
-    if(!$groups_search['success']){
-      $messages[] = $groups_search['messages'];
-      $available_groups = array();
-    } else {
-      $available_groups = $groups_search['groups'];
-    }
+    // Pull back the groups
+    $groups = emfluence_emailer_get_groups();
 
     /* Set up some default widget settings. */
     $defaults = array(
-      'title' => 'Email Signup',
+      'title' => __('Email Signup'),
       'text' => '',
       'groups' => array(),
-      'submit' => 'Signup',
+      'submit' => __('Signup'),
       'fields' => array(
         'first_name' => array(
-          'name' => 'First Name',
+          'name' => __('First Name'),
           'display' => 1,
           'required' => 1,
-          'required_message' => 'First name is required.',
-          'label' => 'First Name:',
+          'required_message' => __('First name is required.'),
+          'label' => __('First Name:'),
           'order' => 1,
         ),
         'last_name' => array(
-          'name' => 'Last Name',
+          'name' => __('Last Name'),
           'display' => 1,
           'required' => 1,
-          'required_message' => 'Last name is required.',
-          'label' => 'Last Name:',
+          'required_message' => __('Last name is required.'),
+          'label' => __('Last Name:'),
           'order' => 2,
         ),
         'title' => array(
-          'name' => 'Title',
+          'name' => __('Title'),
           'display' => 0,
           'required' => 0,
-          'required_message' => 'Title is required.',
-          'label' => 'Title:',
+          'required_message' => __('Title is required.'),
+          'label' => __('Title:'),
           'order' => 3,
         ),
         'company' => array(
-          'name' => 'Company',
+          'name' => __('Company'),
           'display' => 0,
           'required' => 0,
-          'required_message' => 'Company is required.',
-          'label' => 'Company:',
+          'required_message' => __('Company is required.'),
+          'label' => __('Company:'),
           'order' => 4,
         ),
         'email' => array(
@@ -260,75 +269,75 @@ class emfluence_email_signup extends WP_Widget {
           'order' => 6,
         ),
         'custom_2' => array(
-          'name' => 'Custom 2',
+          'name' => __('Custom 2'),
           'display' => 0,
           'required' => 0,
-          'required_message' => 'Custom 2 is required.',
-          'label' => 'Custom 2:',
+          'required_message' => __('Custom 2 is required.'),
+          'label' => __('Custom 2:'),
           'order' => 7,
         ),
         'custom_3' => array(
-          'name' => 'Custom 3',
+          'name' => __('Custom 3'),
           'display' => 0,
           'required' => 0,
-          'required_message' => 'Custom 3 is required.',
-          'label' => 'Custom 3:',
+          'required_message' => __('Custom 3 is required.'),
+          'label' => __('Custom 3:'),
           'order' => 8,
         ),
         'custom_4' => array(
-          'name' => 'Custom 4',
+          'name' => __('Custom 4'),
           'display' => 0,
           'required' => 0,
-          'required_message' => 'Custom 4 is required.',
-          'label' => 'Custom 4:',
+          'required_message' => __('Custom 4 is required.'),
+          'label' => __('Custom 4:'),
           'order' => 9,
         ),
         'custom_5' => array(
-          'name' => 'Custom 5',
+          'name' => __('Custom 5'),
           'display' => 0,
           'required' => 0,
-          'required_message' => 'Custom 5 is required.',
-          'label' => 'Custom 5:',
+          'required_message' => __('Custom 5 is required.'),
+          'label' => __('Custom 5:'),
           'order' => 10,
         ),
         'custom_6' => array(
-          'name' => 'Custom 6',
+          'name' => __('Custom 6'),
           'display' => 0,
           'required' => 0,
-          'required_message' => 'Custom 6 is required.',
-          'label' => 'Custom 6:',
+          'required_message' => __('Custom 6 is required.'),
+          'label' => __('Custom 6:'),
           'order' => 11,
         ),
         'custom_7' => array(
-          'name' => 'Custom 7',
+          'name' => __('Custom 7'),
           'display' => 0,
           'required' => 0,
-          'required_message' => 'Custom 7 is required.',
-          'label' => 'Custom 7:',
+          'required_message' => __('Custom 7 is required.'),
+          'label' => __('Custom 7:'),
           'order' => 12,
         ),
         'custom_8' => array(
-          'name' => 'Custom 8',
+          'name' => __('Custom 8'),
           'display' => 0,
           'required' => 0,
-          'required_message' => 'Custom 8 is required.',
-          'label' => 'Custom 8:',
+          'required_message' => __('Custom 8 is required.'),
+          'label' => __('Custom 8:'),
           'order' => 13,
         ),
         'custom_9' => array(
-          'name' => 'Custom 9',
+          'name' => __('Custom 9'),
           'display' => 0,
           'required' => 0,
-          'required_message' => 'Custom 9 is required.',
-          'label' => 'Custom 9:',
+          'required_message' => __('Custom 9 is required.'),
+          'label' => __('Custom 9:'),
           'order' => 14,
         ),
         'custom_10' => array(
-          'name' => 'Custom 10',
+          'name' => __('Custom 10'),
           'display' => 0,
           'required' => 0,
-          'required_message' => 'Custom 10 is required.',
-          'label' => 'Custom 10:',
+          'required_message' => __('Custom 10 is required.'),
+          'label' => __('Custom 10:'),
           'order' => 15,
         ),
       ),
@@ -337,50 +346,42 @@ class emfluence_email_signup extends WP_Widget {
     $instance = wp_parse_args( (array) $instance, $defaults );
 
     $output = '';
-    $output .= '<h3>' . translate('Text Display') . '</h3>' . "\n";
+    $output .= '<h3>' . __('Text Display') . '</h3>' . "\n";
     $output .= '<p>' . "\n";
-    $output .=  '<label for="' . $this->get_field_id( 'title' ) . '">' . translate('Title') . ':</label>' . "\n";
+    $output .=  '<label for="' . $this->get_field_id( 'title' ) . '">' . __('Title') . ':</label>' . "\n";
     $output .=  '<input type="text" id="' . $this->get_field_id( 'title' ) . '" name="' . $this->get_field_name( 'title' ) . '" value="' . $instance['title'] . '" style="width:100%;" />' . "\n";
     $output .= '</p>' . "\n";
     $output .= '<p>' . "\n";
-    $output .=  '<label for="' . $this->get_field_id( 'text' ) . '">' . translate('Text') . ':</label>' . "\n";
+    $output .=  '<label for="' . $this->get_field_id( 'text' ) . '">' . __('Text') . ':</label>' . "\n";
     $output .=  '<textarea id="' . $this->get_field_id( 'text' ) . '" name="' . $this->get_field_name( 'text' ) . '" style="width:100%;" >' . $instance['text'] . '</textarea>' . "\n";
     $output .= '</p>' . "\n";
     $output .= '<p>' . "\n";
-    $output .=  '<label for="' . $this->get_field_id( 'submit' ) . '">' . translate('Submit button') . ':</label>' . "\n";
+    $output .=  '<label for="' . $this->get_field_id( 'submit' ) . '">' . __('Submit button') . ':</label>' . "\n";
     $output .=  '<input type="text" id="' . $this->get_field_id( 'submit' ) . '" name="' . $this->get_field_name( 'submit' ) . '" value="' . $instance['submit'] . '" style="width:100%;" />' . "\n";
     $output .= '</p>' . "\n";
 
-    $output .= '<h3>' . translate('Groups') . '</h3>';
-    $output .= '<table>' . "\n";
-    // $output .=   '<thead>' . "\n";
-    // $output .=     '<tr>' . "\n";
-    // $output .=       '<th>&nbsp;</th>' . "\n";
-    // $output .=       '<th>Description</th>' . "\n";
-    // $output .=     '</tr>' . "\n";
-    // $output .=   '</thead>' . "\n";
-    $output .=   '<tbody>' . "\n";
-    foreach( $available_groups as $available_group ){
-      $input = array(
-        'id' => $this->get_field_id( 'groups-' . $available_group->id ),
-        'name' => $this->get_field_name(  'groups][' . $available_group->id ),
-        'checked' => is_array( $instance['groups'] ) && in_array($available_group->id, $instance['groups'])? 'checked="checked"' : "",
-      );
-      $output .=     '<tr>' . "\n";
-      $output .=       '<td><input type="checkbox" name="' . $input['name'] . '" id="' . $input['id'] . '" value="1" ' . $input['checked'] . ' /></td>' . "\n";
-      $output .=       '<td>' . "\n";
-      $output .=        '<p>' . "\n";
-      $output .=          '<label for="' . $input['id'] . '" style="font-weight: bold;">' . $available_group->name . '</label>' . "\n";
-      if( !empty($available_group->description) ){
-        $output .=          '<br />' . translate($available_group->description) . "\n";
-      }
-      $output .=       '</td>' . "\n";
-      $output .=     '</tr>' . "\n";
+    $output .= '<div class="groups">';
+    $output .= '<h3>' . __('Groups') . '</h3>' . "\n";
+    $output .= '  <div class="filter">' . "\n";
+    $output .= '    <p>' . __('Search for any group by name to add them to the list of options for users.') . '</p>' . "\n";
+    $output .= '    <p>';
+    $output .= '      <input list="emfluence-emailer-groups-list"/>' . "\n";
+    $output .= '      <button type="button" onclick="emfluenceEmailerWidget.groups.add(this)">' . __('Add') . '</button>';
+    $output .= '    </p>';
+    $output .= '  </div>';
+    $output .= '  <div class="selected">' . "\n";
+    foreach( $instance['groups'] as $groupID ){
+      $group = $groups[$groupID];
+      $id ='groups-' . $this->number . '-' . $groupID;
+      $output .=
+        '<div><label for="' . $id . '">
+          <input id="' . $id . '" type="checkbox" value="' . $groupID . '" name="groups[]" checked /> ' . $group->groupName . '
+        </label></div>';
     }
-    $output .=   '</tbody>' . "\n";
-    $output .=   '</table>' . "\n";
+    $output .= '  </div>';
+    $output .= '</div>';
 
-    $output .= '<h3>' . translate('Fields') . '</h3>' . "\n";
+    $output .= '<h3>' . __('Fields') . '</h3>' . "\n";
     foreach( $defaults['fields'] as $key => $field ){
       $display_input = array(
         'id' => $this->get_field_id( $key . '_display' ),
@@ -410,31 +411,45 @@ class emfluence_email_signup extends WP_Widget {
         'value' => $instance['fields'][$key]['order'],
       );
 
-      $output .= '<h5>' . translate($field['name']) . '</h5>' . "\n";
+      $output .= '<h5>' . __($field['name']) . '</h5>' . "\n";
       $output .= '<p>' . "\n";
       $output .=  '<label for="' . $display_input['id'] . '">' . "\n";
       $output .=   '<input type="checkbox" id="' . $display_input['id'] . '" name="' . $display_input['name'] . '" value="1" ' . $display_input['checked'] . ' ' . $display_input['disabled'] . ' />' . "\n";
-      $output .=   translate('Display');
+      $output .=   __('Display');
       $output .=   '</label>' . "\n";
       $output .=   ' ';
       $output .=  '<label for="' . $required_input['id'] . '">' . "\n";
       $output .=   '<input type="checkbox" id="' . $required_input['id'] . '" name="' . $required_input['name'] . '" value="1" ' . $required_input['checked'] . ' ' . $display_input['disabled'] . ' />' . "\n";
-      $output .=   translate('Required');
+      $output .=   __('Required');
       $output .=   '</label>' . "\n";
       $output .= '</p>' . "\n";
       $output .= '<p>' . "\n";
-      $output .=  '<label for="' . $required_message_input['id'] . '">' . translate('Required Message') . '</label>' . "\n";
+      $output .=  '<label for="' . $required_message_input['id'] . '">' . __('Required Message') . '</label>' . "\n";
       $output .=  '<input type="text" id="' . $required_message_input['id'] . '" name="' . $required_message_input['name'] . '" value="' . $required_message_input['value'] . '" style="width:100%;" />' . "\n";
       $output .= '</p>' . "\n";
       $output .= '<p>' . "\n";
-      $output .=  '<label for="' . $label_input['id'] . '">' . translate('Label') . '</label>' . "\n";
+      $output .=  '<label for="' . $label_input['id'] . '">' . __('Label') . '</label>' . "\n";
       $output .=  '<input type="text" id="' . $label_input['id'] . '" name="' . $label_input['name'] . '" value="' . $label_input['value'] . '" style="width:100%;" />' . "\n";
       $output .= '</p>' . "\n";
       $output .= '<p>' . "\n";
-      $output .=  '<label for="' . $order_input['id'] . '">' . translate('Order') . '</label>' . "\n";
+      $output .=  '<label for="' . $order_input['id'] . '">' . __('Order') . '</label>' . "\n";
       $output .=  '<input type="text" id="' . $order_input['id'] . '" name="' . $order_input['name'] . '" value="' . $order_input['value'] . '" style="width:100%;" />' . "\n";
       $output .= '</p>' . "\n";
     }
+
+    // Output the datalist for groups just once
+    if( intval($this->number) == 0  ) {
+      $output .= '<datalist id="emfluence-emailer-groups-list">';
+      foreach ($groups as $group) {
+        $output .= '<option>' . $group->groupName . ' [' . $group->groupID . ']' . '</option>';
+      }
+      $output .= '</datalist>';
+    }
+
+    // TODO Current problems:
+    // 1. When creating a new instance, no new form is passed through here. (JS has to be super generic)
+    // 2. The datalist we're creating works well, but generating checkboxes 'on input' isn't ready.
+    // 3. We need to load the current groups of the instance in as checkboxes during form generation
 
     print $output;
   }
@@ -451,7 +466,7 @@ class emfluence_email_signup extends WP_Widget {
       'display' => $new_instance['first_name_display'] == 1? 1 : 0,
       'required' => $new_instance['first_name_required'] == 1? 1  : 0,
       'required_message' => !empty($new_instance['first_name_required_message'])? stripslashes(trim($new_instance['first_name_required_message'])) : 'First name is required.',
-      'label' => !empty($new_instance['first_name_label'])? stripslashes(trim($new_instance['first_name_label'])) : 'First Name:',
+      'label' => !empty($new_instance['first_name_label'])? stripslashes(trim($new_instance['first_name_label'])) : __('First Name:'),
       'order' => is_numeric($new_instance['first_name_order'])? $new_instance['first_name_order'] : 1,
     );
     $instance['fields']['last_name'] = array(
@@ -459,7 +474,7 @@ class emfluence_email_signup extends WP_Widget {
       'display' => $new_instance['last_name_display'] == 1? 1 : 0,
       'required' => $new_instance['last_name_required'] == 1? 1  : 0,
       'required_message' => !empty($new_instance['last_name_required_message'])? stripslashes(trim($new_instance['last_name_required_message'])) : 'Last name is required.',
-      'label' => !empty($new_instance['last_name_label'])? stripslashes(trim($new_instance['last_name_label'])) : 'Last Name:',
+      'label' => !empty($new_instance['last_name_label'])? stripslashes(trim($new_instance['last_name_label'])) : __('Last Name:'),
       'order' => is_numeric($new_instance['last_name_order'])? $new_instance['last_name_order'] : 2,
     );
     $instance['fields']['title'] = array(
@@ -467,7 +482,7 @@ class emfluence_email_signup extends WP_Widget {
       'display' => $new_instance['title_display'] == 1? 1 : 0,
       'required' => $new_instance['title_required'] == 1? 1  : 0,
       'required_message' => !empty($new_instance['title_required_message'])? stripslashes(trim($new_instance['title_required_message'])) : 'Title is required.',
-      'label' => !empty($new_instance['title_label'])? stripslashes(trim($new_instance['title_label'])) : 'Title:',
+      'label' => !empty($new_instance['title_label'])? stripslashes(trim($new_instance['title_label'])) : __('Title:'),
       'order' => is_numeric($new_instance['title_order'])? $new_instance['title_order'] : 3,
     );
     $instance['fields']['company'] = array(
@@ -475,7 +490,7 @@ class emfluence_email_signup extends WP_Widget {
       'display' => $new_instance['company_display'] == 1? 1 : 0,
       'required' => $new_instance['company_required'] == 1? 1  : 0,
       'required_message' => !empty($new_instance['company_required_message'])? stripslashes(trim($new_instance['company_required_message'])) : 'Company is required.',
-      'label' => !empty($new_instance['company_label'])? stripslashes(trim($new_instance['company_label'])) : 'Company:',
+      'label' => !empty($new_instance['company_label'])? stripslashes(trim($new_instance['company_label'])) : __('Company:'),
       'order' => is_numeric($new_instance['company_order'])? $new_instance['company_order'] : 4,
     );
     $instance['fields']['email'] = array(
@@ -483,7 +498,7 @@ class emfluence_email_signup extends WP_Widget {
       'display' => $new_instance['email_display'] = 1, // This cannot be optional
       'required' => $new_instance['email_required'] = 1, // This cannot be optional
       'required_message' => !empty($new_instance['email_required_message'])? stripslashes(trim($new_instance['email_required_message'])) : 'Email address is required.',
-      'label' => !empty($new_instance['email_label'])? stripslashes(trim($new_instance['email_label'])) : 'Email:',
+      'label' => !empty($new_instance['email_label'])? stripslashes(trim($new_instance['email_label'])) : __('Email:'),
       'order' => is_numeric($new_instance['email_order'])? $new_instance['email_order'] : 5,
     );
     $instance['fields']['custom_1'] = array(
@@ -491,7 +506,7 @@ class emfluence_email_signup extends WP_Widget {
       'display' => $new_instance['custom_1_display'] == 1? 1 : 0,
       'required' => $new_instance['custom_1_required'] == 1? 1  : 0,
       'required_message' => !empty($new_instance['custom_1_required_message'])? stripslashes(trim($new_instance['custom_1_required_message'])) : 'Custom 1 is required.',
-      'label' => !empty($new_instance['custom_1_label'])? stripslashes(trim($new_instance['custom_1_label'])) : 'Custom 1:',
+      'label' => !empty($new_instance['custom_1_label'])? stripslashes(trim($new_instance['custom_1_label'])) : __('Custom 1:'),
       'order' => is_numeric($new_instance['custom_1_order'])? $new_instance['custom_1_order'] : 6,
     );
     $instance['fields']['custom_2'] = array(
@@ -499,7 +514,7 @@ class emfluence_email_signup extends WP_Widget {
       'display' => $new_instance['custom_2_display'] == 1? 1 : 0,
       'required' => $new_instance['custom_2_required'] == 1? 1  : 0,
       'required_message' => !empty($new_instance['custom_2_required_message'])? stripslashes(trim($new_instance['custom_2_required_message'])) : 'Custom 2 is required.',
-      'label' => !empty($new_instance['custom_2_label'])? stripslashes(trim($new_instance['custom_2_label'])) : 'Custom 2:',
+      'label' => !empty($new_instance['custom_2_label'])? stripslashes(trim($new_instance['custom_2_label'])) : __('Custom 2:'),
       'order' => is_numeric($new_instance['custom_2_order'])? $new_instance['custom_2_order'] : 7,
     );
     $instance['fields']['custom_3'] = array(
@@ -507,7 +522,7 @@ class emfluence_email_signup extends WP_Widget {
       'display' => $new_instance['custom_3_display'] == 1? 1 : 0,
       'required' => $new_instance['custom_3_required'] == 1? 1  : 0,
       'required_message' => !empty($new_instance['custom_3_required_message'])? stripslashes(trim($new_instance['custom_3_required_message'])) : 'Custom 3 is required.',
-      'label' => !empty($new_instance['custom_3_label'])? stripslashes(trim($new_instance['custom_3_label'])) : 'Custom 3:',
+      'label' => !empty($new_instance['custom_3_label'])? stripslashes(trim($new_instance['custom_3_label'])) : __('Custom 3:'),
       'order' => is_numeric($new_instance['custom_3_order'])? $new_instance['custom_3_order'] : 8,
     );
     $instance['fields']['custom_4'] = array(
@@ -515,7 +530,7 @@ class emfluence_email_signup extends WP_Widget {
       'display' => $new_instance['custom_4_display'] == 1? 1 : 0,
       'required' => $new_instance['custom_4_required'] == 1? 1  : 0,
       'required_message' => !empty($new_instance['custom_4_required_message'])? stripslashes(trim($new_instance['custom_4_required_message'])) : 'Custom 4 is required.',
-      'label' => !empty($new_instance['custom_4_label'])? stripslashes(trim($new_instance['custom_4_label'])) : 'Custom 4:',
+      'label' => !empty($new_instance['custom_4_label'])? stripslashes(trim($new_instance['custom_4_label'])) : __('Custom 4:'),
       'order' => is_numeric($new_instance['custom_4_order'])? $new_instance['custom_4_order'] : 9,
     );
     $instance['fields']['custom_5'] = array(
@@ -523,7 +538,7 @@ class emfluence_email_signup extends WP_Widget {
       'display' => $new_instance['custom_5_display'] == 1? 1 : 0,
       'required' => $new_instance['custom_5_required'] == 1? 1  : 0,
       'required_message' => !empty($new_instance['custom_5_required_message'])? stripslashes(trim($new_instance['custom_5_required_message'])) : 'Custom 5 is required.',
-      'label' => !empty($new_instance['custom_5_label'])? stripslashes(trim($new_instance['custom_5_label'])) : 'Custom 5:',
+      'label' => !empty($new_instance['custom_5_label'])? stripslashes(trim($new_instance['custom_5_label'])) : __('Custom 5:'),
       'order' => is_numeric($new_instance['custom_5_order'])? $new_instance['custom_5_order'] : 10,
     );
     $instance['fields']['custom_6'] = array(
@@ -531,7 +546,7 @@ class emfluence_email_signup extends WP_Widget {
       'display' => $new_instance['custom_6_display'] == 1? 1 : 0,
       'required' => $new_instance['custom_6_required'] == 1? 1  : 0,
       'required_message' => !empty($new_instance['custom_6_required_message'])? stripslashes(trim($new_instance['custom_6_required_message'])) : 'Custom 6 is required.',
-      'label' => !empty($new_instance['custom_6_label'])? stripslashes(trim($new_instance['custom_6_label'])) : 'Custom 6:',
+      'label' => !empty($new_instance['custom_6_label'])? stripslashes(trim($new_instance['custom_6_label'])) : __('Custom 6:'),
       'order' => is_numeric($new_instance['custom_6_order'])? $new_instance['custom_6_order'] : 11,
     );
     $instance['fields']['custom_7'] = array(
@@ -539,7 +554,7 @@ class emfluence_email_signup extends WP_Widget {
       'display' => $new_instance['custom_7_display'] == 1? 1 : 0,
       'required' => $new_instance['custom_7_required'] == 1? 1  : 0,
       'required_message' => !empty($new_instance['custom_7_required_message'])? stripslashes(trim($new_instance['custom_7_required_message'])) : 'Custom 7 is required.',
-      'label' => !empty($new_instance['custom_7_label'])? stripslashes(trim($new_instance['custom_7_label'])) : 'Custom 7:',
+      'label' => !empty($new_instance['custom_7_label'])? stripslashes(trim($new_instance['custom_7_label'])) : __('Custom 7:'),
       'order' => is_numeric($new_instance['custom_7_order'])? $new_instance['custom_7_order'] : 12,
     );
     $instance['fields']['custom_8'] = array(
@@ -547,7 +562,7 @@ class emfluence_email_signup extends WP_Widget {
       'display' => $new_instance['custom_8_display'] == 1? 1 : 0,
       'required' => $new_instance['custom_8_required'] == 1? 1  : 0,
       'required_message' => !empty($new_instance['custom_8_required_message'])? stripslashes(trim($new_instance['custom_8_required_message'])) : 'Custom 8 is required.',
-      'label' => !empty($new_instance['custom_8_label'])? stripslashes(trim($new_instance['custom_8_label'])) : 'Custom 8:',
+      'label' => !empty($new_instance['custom_8_label'])? stripslashes(trim($new_instance['custom_8_label'])) : __('Custom 8:'),
       'order' => is_numeric($new_instance['custom_8_order'])? $new_instance['custom_8_order'] : 13,
     );
     $instance['fields']['custom_9'] = array(
@@ -555,7 +570,7 @@ class emfluence_email_signup extends WP_Widget {
       'display' => $new_instance['custom_9_display'] == 1? 1 : 0,
       'required' => $new_instance['custom_9_required'] == 1? 1  : 0,
       'required_message' => !empty($new_instance['custom_9_required_message'])? stripslashes(trim($new_instance['custom_9_required_message'])) : 'Custom 9 is required.',
-      'label' => !empty($new_instance['custom_9_label'])? stripslashes(trim($new_instance['custom_9_label'])) : 'Custom 9:',
+      'label' => !empty($new_instance['custom_9_label'])? stripslashes(trim($new_instance['custom_9_label'])) : __('Custom 9:'),
       'order' => is_numeric($new_instance['custom_9_order'])? $new_instance['custom_9_order'] : 14,
     );
     $instance['fields']['custom_10'] = array(
@@ -563,12 +578,12 @@ class emfluence_email_signup extends WP_Widget {
       'display' => $new_instance['custom_10_display'] == 1? 1 : 0,
       'required' => $new_instance['custom_10_required'] == 1? 1  : 0,
       'required_message' => !empty($new_instance['custom_10_required_message'])? stripslashes(trim($new_instance['custom_10_required_message'])) : 'Custom 10 is required.',
-      'label' => !empty($new_instance['custom_10_label'])? stripslashes(trim($new_instance['custom_10_label'])) : 'Custom 10:',
+      'label' => !empty($new_instance['custom_10_label'])? stripslashes(trim($new_instance['custom_10_label'])) : __('Custom 10:'),
       'order' => is_numeric($new_instance['custom_10_order'])? $new_instance['custom_10_order'] : 15,
     );
 
-    $instance['groups'] = array_keys($new_instance['groups']);
-    //$instance['groups'] = is_array( $new_instance['groups'] )? $new_instance['groups'] : array();
+    // Unfortunately, these don't come through $new_instance
+    $instance['groups'] = array_values($_POST['groups']);
 
     // Clean up the free-form areas
     $instance['title'] = stripslashes($new_instance['title']);
@@ -593,19 +608,9 @@ class emfluence_email_signup extends WP_Widget {
  * Widget Specific
  */
 
-function emfluence_field_order_sort($a, $b){
-	if($a['order'] == $b['order']){
-		return 0;
-	}
-  return ($a['order'] < $b['order']) ? -1 : 1;
-}
-
 function emfluence_bootsrap(){
-  global $emfluence_client_key, $emfluence_api_key, $emfluence_groups_enabled, $emfluence_authenticated;
-	$emfluence_client_key = get_option('emfluence_client_key', '');
-  $emfluence_api_key = get_option('emfluence_api_key', '');
-  $emfluence_groups_enabled = get_option('emfluence_groups_enabled', array());
-  $emfluence_authenticated = get_option('emfluence_authenticated', FALSE);
+  // Load the platform api class file
+  require_once( EMFLUENCE_EMAILER_PATH . '/libraries/emfl_platform_api/api.class.inc' );
 }
 
 function emfluence_get_current_page_url() {
@@ -645,163 +650,49 @@ function emfluence_validate_email($email) {
 }
 
 /**
- * Emfluence API Calls
+ * Get the instance of the api object
+ * @param string $api_key
+ * @param boolean $reset = FALSE
  */
+function emfluence_get_api($api_key, $reset = FALSE){
+  static $api = NULL;
+  if( $reset || !$api ){
+    $api = new Emfl_Platform_API($api_key);
+  }
+  return $api;
+}
 
 /**
- * @return array
+ * Provides a static cache for groups
  */
-function emfluence_api_authenticate($client_key = NULL, $api_key = NULL){
-  $return = array(
-    'success' => TRUE,
-    'messages' => array(),
-  );
-  if( $client_key === NULL ){
-  	global $emfluence_client_key;
-    $client_key = $emfluence_client_key;
-  }
+function emfluence_emailer_get_groups(){
+  static $groups = NULL;
 
-  if( $api_key === NULL ){
-    global $emfluence_api_key;
-    $api_key = $emfluence_api_key;
-  }
+  $options = get_option('emfluence_global');
+  $api = emfluence_get_api($options['api_key']);
 
-  if( empty($client_key) ){
-    $return['success'] = FALSE;
-  	$return['messages'][] = array('type' => 'error', 'value' => 'Client key undefined.');
-  }
-
-  if( empty($api_key) ){
-    $return['success'] = FALSE;
-    $return['messages'][] = array('type' => 'error', 'value' => 'Api key undefined.');
-  }
-
-  if( $return['success'] == FALSE ){
-  	return $return;
-  }
-
-  // Lookup
-  $response = wp_remote_get( 'https://emailer.emfluence.com/app/webservices/wp/1.0/authenticate?clientKey=' . $client_key . '&apiKey=' . $api_key  );
-  if( !$response['response']['code'] == '200' ){
-    $return['success'] = FALSE;
-    $return['messages'][] = array('type' => 'error', 'value' => 'Error contacting emfluence platform. Error ' . $response['response']['code'] . ' "' . $response['response']['message'] . '""' );
-    return $return;
-  } else {
-  	$data = json_decode($response['body']);
-    if( !$data->success ){
-      $return['success'] = FALSE;
-      foreach($data->messages as $message){
-      	$return['messages'][] = array('type' => 'error', 'value' => $message->text);
+  if( $groups === NULL ){
+    $groups = array();
+    $more = TRUE;
+    $page_number = 1;
+    while($more){
+      $response = $api->groups_search(array(
+        'rpp' => 50,
+        'page' => $page_number,
+      ));
+      if( !$response || !$response->success ){
+        $more = FALSE;
+        break;
       }
-      return $return;
-    }
-  }
-
-  return $return;
-}
-
-function emfluence_api_groups_search($client_key = NULL, $api_key = NULL){
-  $return = array(
-    'success' => TRUE,
-    'messages' => array(),
-    'groups' => array(),
-  );
-
-  if( $client_key === NULL ){
-    global $emfluence_client_key;
-    $client_key = $emfluence_client_key;
-  }
-
-  if( $api_key === NULL ){
-    global $emfluence_api_key;
-    $api_key = $emfluence_api_key;
-  }
-
-  if( empty($client_key) ){
-    $return['success'] = FALSE;
-    $return['messages'][] = array('type' => 'error', 'value' => 'Client key undefined.');
-  }
-
-  if( empty($api_key) ){
-    $return['success'] = FALSE;
-    $return['messages'][] = array('type' => 'error', 'value' => 'Api key undefined.');
-  }
-
-  if( $return['success'] == FALSE ){
-    return $return;
-  }
-
-  // Lookup
-	$response = wp_remote_get( 'https://emailer.emfluence.com/app/webservices/wp/1.0/groups/search?clientKey=' . $client_key . '&apiKey=' . $api_key  );
-  if( !$response['response']['code'] == '200' ){
-    $return['success'] = FALSE;
-    $return['messages'][] = array('type' => 'error', 'value' => 'Error contacting emfluence platform. Error ' . $response['response']['code'] . ' "' . $response['response']['message'] . '""' );
-    return $return;
-  } else {
-    $data = json_decode($response['body']);
-    if( !$data->success ){
-      $return['success'] = FALSE;
-      foreach($data->messages as $message){
-        $return['messages'][] = array('type' => 'error', 'value' => $message->text);
+      foreach( $response->data->records as $group ){
+        $groups[$group->groupID] = $group;
       }
-      return $return;
-    } else {
-      foreach($data->data as $group){
-      	$return['groups'][$group->id] = $group;
+      if( !$response->data->paging->nextUrl ){
+        $more = FALSE;
+      } else {
+        ++$page_number;
       }
     }
   }
-
-  return $return;
-}
-
-function emfluence_api_subscription_start($form_data){
-  $return = array(
-    'success' => TRUE,
-    'messages' => array(),
-  );
-
-  global $emfluence_client_key, $emfluence_api_key;
-  $data = array();
-  $data['clientKey'] = $emfluence_client_key;
-  $data['apiKey'] = $emfluence_api_key;
-  $data['action'] = 'add';
-  $data['listID'] = trim( $form_data['lists'] );
-  $data['originalSource'] = trim( $form_data['source'] );
-  $data['firstName'] = !empty( $form_data['first_name'] )? trim( $form_data['first_name'] ) : '';
-  $data['lastName'] = !empty( $form_data['last_name'] )? trim( $form_data['last_name'] ) : '';
-  $data['title'] = !empty( $form_data['title'] )? trim( $form_data['title'] ) : '';
-  $data['company'] = !empty( $form_data['company'] )? trim( $form_data['company'] ) : '';
-  // $data['phone'] = trim( $form_data['phone_number'] );
-  $data['email'] = trim( $form_data['email'] );
-  $data['custom1'] = !empty( $form_data['custom_1'] )? trim( $form_data['custom_1'] ) : '';
-  $data['custom2'] = !empty( $form_data['custom_2'] )? trim( $form_data['custom_2'] ) : '';
-  $data['custom3'] = !empty( $form_data['custom_3'] )? trim( $form_data['custom_3'] ) : '';
-  $data['custom4'] = !empty( $form_data['custom_4'] )? trim( $form_data['custom_4'] ) : '';
-  $data['custom5'] = !empty( $form_data['custom_5'] )? trim( $form_data['custom_5'] ) : '';
-  $data['custom6'] = !empty( $form_data['custom_6'] )? trim( $form_data['custom_6'] ) : '';
-  $data['custom7'] = !empty( $form_data['custom_7'] )? trim( $form_data['custom_7'] ) : '';
-  $data['custom8'] = !empty( $form_data['custom_8'] )? trim( $form_data['custom_8'] ) : '';
-  $data['custom9'] = !empty( $form_data['custom_9'] )? trim( $form_data['custom_9'] ) : '';
-  $data['custom10'] = !empty( $form_data['custom_10'] )? trim( $form_data['custom_10'] ) : '';
-
-  $url = 'https://emailer.emfluence.com/subscription_handler.cfm';
-  $request = new WP_Http;
-  $result = $request->request( $url, array( 'method' => 'POST', 'body' => $data) );
-
-  if ( $result['response']['code'] != '200' ){
-    $return['success'] = FALSE;
-    $return['messages'][] = array('type' => 'error', 'value' => translate('An error occured contacting the email service. Error code: ') . $result['response']['code'] . ' "' . $result['response']['status'] . '."');
-    return $return;
-  } else {
-    // Check if the signup was a success
-    $signup_response = explode('|', $result['body']);
-    if( $signup_response[0] != '1' ){
-      $return['success'] = FALSE;
-      $return['messages'][] = array('type' => 'error', 'value' => translate('An error occured starting your subscription: ') . ' "' . $signup_response[2] . '."');
-    } else {
-    	$return['messages'][] = array('type' => 'success', 'value' => $signup_response[2]);
-    }
-  }
-  return $return;
+  return $groups;
 }
