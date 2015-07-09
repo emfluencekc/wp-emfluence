@@ -9,7 +9,7 @@ class emfluence_email_signup extends WP_Widget {
     $control_ops = array( 'width' => 400, 'id_base' => 'emfluence_email_signup' );
 
     /* Create the widget. */
-    $this->WP_Widget( 'emfluence_email_signup', 'emfluence emailer Email Signup', $widget_ops, $control_ops );
+    $this->WP_Widget( 'emfluence_email_signup', 'emfluence Marketing Platform Email Signup', $widget_ops, $control_ops );
   }
 
   function widget( $args, $instance ) {
@@ -370,13 +370,15 @@ class emfluence_email_signup extends WP_Widget {
     $output .= '    </p>';
     $output .= '  </div>';
     $output .= '  <div class="selected">' . "\n";
-    foreach( $instance['groups'] as $groupID ){
-      $group = $groups[$groupID];
-      $id ='groups-' . $this->number . '-' . $groupID;
-      $output .=
-        '<div><label for="' . $id . '">
-          <input id="' . $id . '" type="checkbox" value="' . $groupID . '" name="groups[]" checked /> ' . $group->groupName . '
-        </label></div>';
+    if( !empty($instance['groups']) ) {
+      foreach ($instance['groups'] as $groupID) {
+        $group = $groups[$groupID];
+        $id = 'groups-' . $this->number . '-' . $groupID;
+        $output .=
+          '<div><label for="' . $id . '">
+            <input id="' . $id . '" type="checkbox" value="' . $groupID . '" name="groups[]" checked /> ' . $group->groupName . '
+          </label></div>';
+      }
     }
     $output .= '  </div>';
     $output .= '</div>';
@@ -671,7 +673,7 @@ function emfluence_emailer_get_groups(){
   $options = get_option('emfluence_global');
   $api = emfluence_get_api($options['api_key']);
 
-  if( $groups === NULL ){
+  if( TRUE || $groups === NULL ){
     $groups = array();
     $more = TRUE;
     $page_number = 1;

@@ -22,9 +22,9 @@ function emfl_response_is_error( $response ) {
  */
 class Emfl_Platform_API {
 
-  CONST API_URL = 'https://api.emailer.emfluence.com/v0';
+  CONST API_URL = 'https://api.emailer.emfluence.com/v1';
 
-  private $apikey;
+  private $access_token;
   public $timeout = 15; // Low so that if the Platform API is slow, it doesn't cause this script to time out.
   
   /**
@@ -43,12 +43,12 @@ class Emfl_Platform_API {
   var $errors = NULL;
 
   /**
-   * @param string $api_key
+   * @param string $access_key
    * @param string $error_function Function name. 
    * The function gets passed any error message as a string parameter.
    */
-  function __construct( $api_key, $error_function = NULL ) {
-    $this->apikey = $api_key;
+  function __construct( $access_token, $error_function = NULL ) {
+    $this->access_token = $access_token;
 
     if( !empty($error_function) ) {
       $this->error_function = $error_function;
@@ -97,7 +97,7 @@ class Emfl_Platform_API {
 
     // make the call with the best request handler available
     $url = self::API_URL . '/' . $endpoint;
-    $params['apiKey'] = $this->apikey;
+    $params['accessToken'] = $this->access_token;
 
     if( function_exists('drupal_http_request') && defined('VERSION') ) {
       // Drupal request handler
@@ -227,6 +227,35 @@ class Emfl_Platform_API {
     if(empty($response)) return FALSE; // Transmission error
     require_once 'response_objects/contact.class.inc';
     if(!empty( $response->data )) $response->data = new Emfl_Contact($response->data);
+    return $response;
+  }
+
+  /**
+   * Remove a contact from groups
+   *
+   * The return value could be FALSE if a transmission error occurred,
+   * like being blocked by the Platform or a network issue.
+   *
+   * Otherwise even bad API calls will get an Emfl_Response object
+   * that corresponds with the Platform's response format. See here:
+   * http://apidocs.emailer.emfluence.com/#responses
+   *
+   * Don't forget to check the 'success' property before assuming that
+   * the operation occurred correctly. If an error occurred, the 'data'
+   * property will be FALSE and the 'errors' property will have details.
+   *
+   * Finally, if the operation was successful, the 'data' property is a
+   * populated Emfl_Response object specifying the details
+   *
+   * @param array $params Per the API reference.
+   * @return bool | Emfl_Response
+   * @see https://apidocs.emailer.emfluence.com/v1/endpoints/contacts/deleteGroups
+   */
+  function contacts_delete_groups( $params ) {
+    $response = $this->call('contacts/deleteGroups', $params);
+    if(empty($response)) return FALSE; // Transmission error
+    require_once 'response_objects/generic.class.inc';
+    if(!empty( $response->data )) $response->data = new Emfl_Response($response->data);
     return $response;
   }
 

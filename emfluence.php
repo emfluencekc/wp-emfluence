@@ -28,9 +28,18 @@ add_action( 'widgets_init', 'emfluence_load_widgets' );
 if(is_admin()) {
   require_once EMFLUENCE_EMAILER_PATH . 'admin.php';
 
+  // Add settings link on plugin page
+  function emfluence_emailer_settings_link($links) {
+    $settings_link = '<a href="options-general.php?page=emfluence_emailer">Settings</a>';
+    array_unshift($links, $settings_link);
+    return $links;
+  }
+  $plugin = plugin_basename(__FILE__);
+  add_filter("plugin_action_links_$plugin", 'emfluence_emailer_settings_link' );
+
   // Register the settings page
   function emfluence_emailer_admin_menu() {
-    add_options_page('Emfluence Emailer Global Settings', 'Emfluence Emailer', 'manage_options', 'emfluence_emailer', '_emfluence_emailer_options_page');
+    add_options_page('Emfluence Marketing Platform Global Settings', 'Emfluence Marketing Platform', 'manage_options', 'emfluence_emailer', '_emfluence_emailer_options_page');
   }
   add_action('admin_menu', 'emfluence_emailer_admin_menu');
 
