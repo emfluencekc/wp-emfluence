@@ -673,7 +673,7 @@ function emfluence_emailer_get_groups(){
   $options = get_option('emfluence_global');
   $api = emfluence_get_api($options['api_key']);
 
-  if( TRUE || $groups === NULL ){
+  if( $groups === NULL ){
     $groups = array();
     $more = TRUE;
     $page_number = 1;
