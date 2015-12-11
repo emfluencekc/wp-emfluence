@@ -96,42 +96,40 @@ class emfluence_email_signup extends WP_Widget {
         $data['company'] = !empty( $_POST['company'] )? trim( $_POST['company'] ) : '';
         // $data['phone'] = trim( $form_data['phone_number'] );
         $data['email'] = trim( $_POST['email'] );
-        $data['custom1'] = !empty( $_POST['custom_1'] )? trim( $_POST['custom_1'] ) : '';
-        $data['custom2'] = !empty( $_POST['custom_2'] )? trim( $_POST['custom_2'] ) : '';
-        $data['custom3'] = !empty( $_POST['custom_3'] )? trim( $_POST['custom_3'] ) : '';
-        $data['custom4'] = !empty( $_POST['custom_4'] )? trim( $_POST['custom_4'] ) : '';
-        $data['custom5'] = !empty( $_POST['custom_5'] )? trim( $_POST['custom_5'] ) : '';
-        $data['custom6'] = !empty( $_POST['custom_6'] )? trim( $_POST['custom_6'] ) : '';
-        $data['custom7'] = !empty( $_POST['custom_7'] )? trim( $_POST['custom_7'] ) : '';
-        $data['custom8'] = !empty( $_POST['custom_8'] )? trim( $_POST['custom_8'] ) : '';
-        $data['custom9'] = !empty( $_POST['custom_9'] )? trim( $_POST['custom_9'] ) : '';
-        $data['custom10'] = !empty( $_POST['custom_10'] )? trim( $_POST['custom_10'] ) : '';
+        $data['customFields'] = array();
+        for( $i = 1; $i <= 10; $i++ ){
+          $field = 'custom' . $i;
+          $parameter = 'custom_' . $i;
+          if( empty($_POST[$parameter]) ){
+            continue;
+          }
+          $data['customFields'][$field] = array(
+            'value' => trim( $_POST[$parameter] ),
+          );
+        }
         $result = $api->contacts_save($data);
 
-        if( !$result->success ){
-          $success = FALSE;
+        if( empty($result->success) ){
           $messages[] = array('type' => 'error', 'value' => __('An error occurred contacting the email service.'));
         } else {
-          $success = TRUE;
-        }
+          /* Before widget (defined by themes). */
+          $output .= $before_widget . '<form class="mail-form" method="post"><div class="holder"><div class="frame">';
 
-        /* Before widget (defined by themes). */
-					   $output .= $before_widget . '<form class="mail-form" method="post"><div class="holder"><div class="frame">';
+          /* Title of widget (before and after defined by themes). */
+          if ( $title ){
+            $output .= $before_title . '<span>' . $title . '</span>' . $after_title;
 
-        /* Title of widget (before and after defined by themes). */
-        if ( $title ){
-						    $output .= $before_title . '<span>' . $title . '</span>' . $after_title;
+            ob_start();
+            get_template_part('emfluence/success');
+            $message = ob_get_clean();
+            if(empty($message)) $message = file_get_contents( 'theme/success.php', TRUE);
+            $output .= $message;
 
-          ob_start();
-          get_template_part('emfluence/success');
-          $message = ob_get_clean();
-          if(empty($message)) $message = file_get_contents( 'theme/success.php', TRUE);
-          $output .= $message;
+            $output .= '</div></div></form>' . $after_widget;
 
-          $output .= '</div></div></form>' . $after_widget;
-
-          print $output;
-          return;
+            print $output;
+            return;
+          }
         }
       }
     }
@@ -153,7 +151,9 @@ class emfluence_email_signup extends WP_Widget {
       $output .= '</ul>';
     }
 
-    $output .= wpautop( $instance['text'] );
+    if( !empty($instance['text']) ) {
+      $output .= '<div class="lead">' . wpautop($instance['text']) . '</div>';
+    }
 
     $current_page_url = remove_query_arg('sucess', emfluence_get_current_page_url());
     $output .= '<form action="' . $current_page_url . '" method="POST">' . "\n";
@@ -171,24 +171,25 @@ class emfluence_email_signup extends WP_Widget {
       if( $field['display'] ){
         $label = __($field['label']);
         $placeholder = __( str_replace(':', '', $field['label']) );
+        $required = $field['required']? 'required' : '';
         switch( $field['type'] ){
         	case 'text':
           default:
-            $output .= '<div class="field row">' . "\n";
+            $output .= '<div class="field row field-' . $key . '">' . "\n";
               $output .= '<label for="emfluence_' . $key . '">' . $label . '';
               if( $field['required'] ){
                 $output .= '<span class="required">*</span>';
               }
               $input_type = ($field['field_name']=='email') ? 'email' : 'text';
               $output .= '</label>' . "\n";
-              $output .=   '<input placeholder="' . $placeholder . '" type="' . $input_type . '" name="' . $field['field_name'] . '" id="emfluence_' . $key . '" value="' . $values[$field['field_name']] . '" />' . "\n";
+              $output .=   '<input placeholder="' . $placeholder . '" type="' . $input_type . '" name="' . $field['field_name'] . '" id="emfluence_' . $key . '" value="' . $values[$field['field_name']] . '" ' . $required . ' />' . "\n";
             $output .= '</div>' . "\n";
           break;
         }
       }
     }
 
-    $output .= '<div class="row"><input type="submit" class="submit" value="' . htmlentities( $instance['submit'], ENT_QUOTES ) . '" /></div>' . "\n";
+    $output .= '<div class="row actions"><input type="submit" class="submit" value="' . htmlentities( $instance['submit'], ENT_QUOTES ) . '" /></div>' . "\n";
     $output .= '</form>' . "\n";
 
     /* After widget (defined by themes). */
