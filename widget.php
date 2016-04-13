@@ -10,7 +10,7 @@ class emfluence_email_signup extends WP_Widget {
     $control_ops = array( 'width' => 400, 'id_base' => 'emfluence_email_signup' );
 
     /* Create the widget. */
-    $this->WP_Widget( 'emfluence_email_signup', 'emfluence Marketing Platform Email Signup', $widget_ops, $control_ops );
+    parent::__construct( 'emfluence_email_signup', 'emfluence Marketing Platform Email Signup', $widget_ops, $control_ops );
   }
 
   /**
@@ -72,6 +72,9 @@ class emfluence_email_signup extends WP_Widget {
     return true;
   }
 
+  /**
+   * @return string
+   */
   protected function get_current_page_url() {
     $pageURL = 'http';
     if (isset($_SERVER["HTTPS"]) AND ($_SERVER["HTTPS"] == "on")) {$pageURL .= "s";}
