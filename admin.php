@@ -91,7 +91,7 @@ function _emfluence_emailer_options_validate($data){
 
   // Ensure it works
   $result = $api->ping();
-  if( !$result ){
+  if( !$result || !$result->success ){
     $message = __('Unable to access the API using the api key provided. Error message: ') . $api->errors->get_last();
     add_settings_error( 'api_key', 'api_key', $message , 'error' );
     $data['api_key'] = '';
