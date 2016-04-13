@@ -54,7 +54,7 @@ if(is_admin()) {
     );
     add_settings_field(
       'api_key'
-      ,__('Api Key')
+      ,__('Access Token')
       ,'_emfluence_emailer_options_api_key_element'
       ,'emfluence_emailer'
       ,'account'

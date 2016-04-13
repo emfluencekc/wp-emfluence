@@ -43,7 +43,26 @@ function _emfluence_emailer_options_validate($data){
     $message = __('Unable to access the API using the api key provided. Error message: ') . $api->errors->get_last();
     add_settings_error( 'api_key', 'api_key', $message , 'error' );
     $data['api_key'] = '';
+    delete_transient('emfl-access-token-validation');
+  } else {
+    set_transient('emfl-access-token-validation', TRUE, 60);
   }
 
   return $data;
 }
+
+/**
+ * Display a success message if access token was validated.
+ */
+function emfl_settings_page_messages() {
+  if(empty($_GET['page']) || ($_GET['page'] != 'emfluence_emailer')) return;
+  $transient = get_transient('emfl-access-token-validation');
+  if(empty($transient)) return;
+  delete_transient('emfl-access-token-validation');
+
+  $message = __('Access token validated.');
+  $class = 'notice notice-success';
+
+  printf( '<div class="%1$s"><p>' . $message . '</p></div>', $class );
+}
+add_action('admin_notices', 'emfl_settings_page_messages');
