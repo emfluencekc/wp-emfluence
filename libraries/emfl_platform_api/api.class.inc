@@ -24,7 +24,7 @@ class Emfl_Platform_API {
 
   CONST API_URL = 'https://api.emailer.emfluence.com/v1';
 
-  private $access_token;
+  private $access_token; // Private so that it can't be changed after instantiation.
   public $timeout = 15; // Low so that if the Platform API is slow, it doesn't cause this script to time out.
   
   /**
@@ -38,23 +38,24 @@ class Emfl_Platform_API {
 
   /**
    * Provides an internal storage for errors produced by this api.
-   * This will be used if an error function is not provided
+   * This will be used if an error function is not provided.
+   * @var Emfl_Platform_API_Errors
    */
   var $errors = NULL;
 
   /**
-   * @param string $access_key
+   * @param string $access_token
    * @param string $error_function Function name. 
    * The function gets passed any error message as a string parameter.
+   * @throws Exception If the access token is empty.
    */
   function __construct( $access_token, $error_function = NULL ) {
+    if(empty($access_token)) throw new Exception('Emfluence API library instantiated with an empty access token.');
     $this->access_token = $access_token;
 
+    $this->errors = new Emfl_Platform_API_Errors();
     if( !empty($error_function) ) {
       $this->error_function = $error_function;
-    } else {
-      $this->errors = new Emfl_Platform_API_Errors();
-      $this->error_function = array($this->errors, 'add');
     }
   }
 
@@ -63,6 +64,7 @@ class Emfl_Platform_API {
    * @param string $msg
    */
   private function err( $msg ) {
+    $this->errors->add($msg);
     $func = $this->error_function;
     if( empty($func) || !is_callable($func) ) return; 
     if( is_string($func) ) {
@@ -122,20 +124,25 @@ class Emfl_Platform_API {
         );
       }
 
-    } elseif( function_exists('wp_remote_post') && false ) {
+    } elseif( function_exists('wp_remote_post') ) {
       // Wordpress request handler
       $response = wp_remote_post(
-      	$url,
-        array(
-          'timeout' => $this->timeout,
-        	'headers' => array( array( 'Content-Type' => 'application/json' ) ),
-          'body' => json_encode( (object) $params )
-        )
-      );    dbgout($response);
+          $url,
+          array(
+              'timeout' => $this->timeout,
+              'headers' => array( 'Content-Type' => 'application/json' ),
+              'body' => json_encode( (object) $params )
+          )
+      );
 
       if( !is_wp_error($response) ) {
-        $response = (object) $response['response'];
-        $response->data = $response->body;
+        $response = (object) array(
+            'data' => $response['body'],
+            'code' => $response['response']['code']
+        );
+      } else {
+        $this->err('wp_remote_post returned an error for ' . $endpoint . ': ' . var_export($response, TRUE));
+        return FALSE;
       }
 
     } elseif( function_exists('curl_init') ) {
@@ -163,7 +170,7 @@ class Emfl_Platform_API {
 
     // Look for transmission fail
     if( !isset($response->code) || ($response->code != 200) ) {
-      $this->err( 'Transmission failure ' . var_export($response, TRUE) );
+      $this->err( $endpoint . ': Transmission failure ' . var_export($response, TRUE) );
       return FALSE;
     }
 
@@ -174,7 +181,7 @@ class Emfl_Platform_API {
 
     // Look for API fail
     if($response->success != 1) {
-      $this->err( 'Bad API call: ' . $response->code . ' - ' . var_export($response->errors, TRUE) );
+      $this->err( 'Bad API call to ' . $endpoint . ': ' . $response->code . ' - ' . var_export($response->errors, TRUE) );
     }
 
     return $response;
@@ -186,7 +193,7 @@ class Emfl_Platform_API {
   //////////
   
   /**
-   * Test method, use it to see whether API key,
+   * Test method, use it to see whether API token,
    * error_function and request handlers are working.
    *
    * @see http://apidocs.emailer.emfluence.com/#responses
@@ -196,10 +203,140 @@ class Emfl_Platform_API {
     return $this->call( 'helper/ping', array() );
   }
 
+  /**
+   * Get a stub response: The structure of a response with blank data.
+   * Useful in unit testing.
+   * @param string $endpoint The API endpoint, not beginning with a slash.
+   * Eg, 'helper/ping' would be an endpoint.
+   * @return Emfl_Response
+   */
+  function call_stub($endpoint) {
+    require_once 'response_objects/wrapper.class.inc';
+    $response = new Emfl_Response((object) array(
+        'data' => '',
+        'code' => ''
+    ));
+    switch($endpoint) {
+      case 'contacts/lookup':
+        require_once 'response_objects/contact.class.inc';
+        $response->data = new Emfl_Contact();
+        break;
+      case 'groups/search':
+        require_once 'response_objects/wrapper.pagingplusrecords.class.inc';
+        require_once 'response_objects/group.class.inc';
+        $response->data = new Emfl_PagingPlusRecords(
+            (object) array(
+                "next" => NULL,
+                "page" => NULL,
+                "rpp" => NULL,
+                "totalPages" => NULL,
+                "totalRecords" => NULL,
+                "prev" => NULL
+            ),
+            array(),
+            'Emfl_Group');
+        break;
+      case 'emails/search':
+        require_once 'response_objects/wrapper.pagingplusrecords.class.inc';
+        require_once 'response_objects/email.class.inc';
+        $response->data = new Emfl_PagingPlusRecords(
+            (object) array(
+                "next" => NULL,
+                "page" => NULL,
+                "rpp" => NULL,
+                "totalPages" => NULL,
+                "totalRecords" => NULL,
+                "prev" => NULL
+            ),
+            array(),
+            'Emfl_Email'
+          );
+        break;
+      case 'emails/lookup':
+        require_once 'response_objects/email.class.inc';
+        $response->data = new Emfl_Email();
+        break;
+      case 'emailReports/recipients':
+        require_once 'response_objects/wrapper.pagingplusrecords.class.inc';
+        require_once 'response_objects/emailreports.recipient.class.inc';
+        $response->data = new Emfl_PagingPlusRecords(
+            (object) array(
+                "next" => NULL,
+                "page" => NULL,
+                "rpp" => NULL,
+                "totalPages" => NULL,
+                "totalRecords" => NULL,
+                "prev" => NULL
+            ),
+            array(),
+            'Emfl_EmailReport_Recipient'
+        );
+        break;
+    }
+    return $response;
+  }
+
   
   //////////////
   // Contacts //
   //////////////
+  
+  /**
+   * Delete an existing contact record. Suppressed records cannot be deleted.
+   *
+   * The return value could be FALSE if a transmission error occurred,
+   * like being blocked by the Platform or a network issue.
+   *
+   * Otherwise even bad API calls will get an Emfl_Response object
+   * that corresponds with the Platform's response format. See here:
+   * http://apidocs.emailer.emfluence.com/#responses
+   *
+   * Don't forget to check the 'success' property before assuming that
+   * the operation occurred correctly. If an error occurred, the 'errors' 
+   * property will have details.
+   *
+   * @param int $contactID Per the API reference.
+   * @return bool | Emfl_Response
+   * @see https://apidocs.emailer.emfluence.com/v1/endpoints/contacts/delete
+   */
+  function contacts_delete( $contactID ) {
+    $response = $this->call('contacts/delete', array( 'contactID' => $contactID ));
+    if(empty($response)) return FALSE; // Transmission error
+    return $response;
+  }
+  
+  /**
+   * Get full details for contacts by either contactID or email
+   *
+   * The return value could be FALSE if a transmission error occurred,
+   * like being blocked by the Platform or a network issue.
+   *
+   * Otherwise even bad API calls will get an Emfl_Response object
+   * that corresponds with the Platform's response format. See here:
+   * http://apidocs.emailer.emfluence.com/#responses
+   *
+   * Don't forget to check the 'success' property before assuming that
+   * the operation occurred correctly. If an error occurred, the 'data'
+   * property will be FALSE and the 'errors' property will have details.
+   *
+   * Finally, if the operation was successful, the 'data' property is 
+   * either a populated Emfl_Contact object or an array of them.
+   *
+   * @param array $params Per the API reference.
+   * @return bool | Emfl_Response
+   * @see https://apidocs.emailer.emfluence.com/v1/endpoints/contacts/lookup
+   */
+  function contacts_lookup( $params ) {
+    $response = $this->call('contacts/lookup', $params);
+    if(empty($response)) return FALSE; // Transmission error
+    require_once 'response_objects/contact.class.inc';
+    if(!empty( $response->data )) {
+      if(is_array($response->data)) {
+        foreach($response->data as &$record) $record = new Emfl_Contact($record);
+      } else $response->data = new Emfl_Contact($response->data);
+    }
+    return $response;
+  }
   
   /**
    * Save a contact and get the saved contact in return.
@@ -220,7 +357,7 @@ class Emfl_Platform_API {
    *
    * @param array $params Per the API reference.
    * @return bool | Emfl_Response
-   * @see https://apidocs.emailer.emfluence.com/endpoints/contacts/save
+   * @see https://apidocs.emailer.emfluence.com/v1/endpoints/contacts/save
    */
   function contacts_save( $params ) {
     $response = $this->call('contacts/save', $params);
@@ -278,7 +415,7 @@ class Emfl_Platform_API {
    *
    * @param array $params Per the API reference.
    * @return bool | Emfl_Response
-   * @see https://apidocs.emailer.emfluence.com/endpoints/contacts/import
+   * @see https://apidocs.emailer.emfluence.com/v1/endpoints/contacts/import
    */
   function contacts_import( $params ) {
     $response = $this->call('contacts/import', $params);
@@ -287,6 +424,7 @@ class Emfl_Platform_API {
     if(!empty( $response->data )) $response->data = new Emfl_Contacts_Import($response->data);
     return $response;
   }
+
 
   ////////////
   // Groups //
@@ -307,24 +445,29 @@ class Emfl_Platform_API {
    * property will be FALSE and the 'errors' property will have details.
    *
    * Finally, if the operation was successful, the 'data' property is a
-   * populated Emfl_Group_Search object with paging details and a records
-   * list of groups. Note however that the populated group objects are not
-   * complete group objects, as per the API documentation.
+   * populated Emfl_PagingPlusRecords object with paging details and a records
+   * list of Emfl_Group groups. Note however that the populated group objects
+   * are not complete group objects, as per the API documentation.
    *
    * @param array $params Keyed values, per API documentation
    * @return Emfl_Response
-   * @see https://apidocs.emailer.emfluence.com/endpoints/groups/search
+   * @see https://apidocs.emailer.emfluence.com/v1/endpoints/groups/search
    */
   function groups_search( $params = array() ) {
     $response = $this->call('groups/search', $params);
     if(empty($response)) return FALSE; // Transmission error
     if(!empty($response->data)) {
-      require_once 'response_objects/groups.search.class.inc';
-      $response->data = new Emfl_Groups_Search($response->data->paging, $response->data->records);
+      require_once 'response_objects/wrapper.pagingplusrecords.class.inc';
+      require_once 'response_objects/group.class.inc';
+      $response->data = new Emfl_PagingPlusRecords(
+          $response->data->paging,
+          $response->data->records,
+          'Emfl_Group');
     }
     return $response;
   }
-  
+
+
   ////////////
   // Emails //
   ////////////
@@ -344,20 +487,25 @@ class Emfl_Platform_API {
    * property will be FALSE and the 'errors' property will have details.
    *
    * Finally, if the operation was successful, the 'data' property is a
-   * populated Emfl_Email_Search object with paging details and a records 
-   * list of emails. Note however that the populated email objects are not 
-   * complete email objects, as per the API documentation.
+   * populated Emfl_PagingPlusRecords object with paging details and a records
+   * list of Emfl_Email emails. Note however that the populated email objects
+   * are not complete email objects, as per the API documentation.
    *
    * @param array $params Keyed values, per API documentation
    * @return Emfl_Response
-   * @see https://apidocs.emailer.emfluence.com/endpoints/emails/copy
+   * @see https://apidocs.emailer.emfluence.com/v1/endpoints/emails/copy
    */
   function emails_search( $params = array() ) {
     $response = $this->call('emails/search', $params);
     if(empty($response)) return FALSE; // Transmission error
     if(!empty($response->data)) {
-      require_once 'response_objects/emails.search.class.inc';
-      $response->data = new Emfl_Emails_Search($response->data->paging, $response->data->records);
+      require_once 'response_objects/wrapper.pagingplusrecords.class.inc';
+      require_once 'response_objects/email.class.inc';
+      $response->data = new Emfl_PagingPlusRecords(
+          $response->data->paging,
+          $response->data->records,
+          'Emfl_Email'
+        );
     }
     return $response;
   }
@@ -381,7 +529,7 @@ class Emfl_Platform_API {
    * 
    * @param int $email_id The email ID
    * @return boolean| Emfl_Response
-   * @see https://apidocs.emailer.emfluence.com/endpoints/emails/lookup
+   * @see https://apidocs.emailer.emfluence.com/v1/endpoints/emails/lookup
    */
   function emails_lookup( $email_id ) {
     $response = $this->call('emails/lookup', array('emailID' => $email_id));
@@ -412,7 +560,7 @@ class Emfl_Platform_API {
    * 
    * @param Emfl_Email $email It's probably best to use a response object from an emails_lookup call as the input here.
    * @return Emfl_Response
-   * @see https://apidocs.emailer.emfluence.com/endpoints/emails/save
+   * @see https://apidocs.emailer.emfluence.com/v1/endpoints/emails/save
    */
   function emails_save( Emfl_Email $email ) {
     $response = $this->call('emails/save', (array) $email );
@@ -441,7 +589,7 @@ class Emfl_Platform_API {
    *
    * @param int $email_id The email ID
    * @return Emfl_Response
-   * @see https://apidocs.emailer.emfluence.com/endpoints/emails/copy
+   * @see https://apidocs.emailer.emfluence.com/v1/endpoints/emails/copy
    */
   function emails_copy( $email_id ) {
     $response = $this->call('emails/copy', array('emailID' => $email_id));
@@ -468,7 +616,7 @@ class Emfl_Platform_API {
    * @param int $email_id The email ID
    * @param string $schedule_send_time Future date when email should be sent, in GMT. Format: Y-m-d H:i:s
    * @return Emfl_Response
-   * @see https://apidocs.emailer.emfluence.com/endpoints/emails/copy
+   * @see https://apidocs.emailer.emfluence.com/v1/endpoints/emails/copy
    */
   function emails_schedule( $email_id, $schedule_send_time ) {
     $response = $this->call('emails/schedule', array(
@@ -496,7 +644,7 @@ class Emfl_Platform_API {
    * @param int $email_id The email ID
    * @param string $recipient Email address to send the test to.
    * @return Emfl_Response
-   * @see https://apidocs.emailer.emfluence.com/endpoints/emails/sendTest
+   * @see https://apidocs.emailer.emfluence.com/v1/endpoints/emails/sendTest
    */
   function emails_sendTest( $email_id, $recipient ) {
     $response = $this->call('emails/sendTest', array(
@@ -506,7 +654,49 @@ class Emfl_Platform_API {
     if(empty($response)) return FALSE; // Transmission error
     return $response;
   }
-  
+
+
+  ///////////////////
+  // Email Reports //
+  ///////////////////
+
+  /**
+   * EmailReports / recipients
+   *
+   * The return value could be FALSE if a transmission error occurred,
+   * like being blocked by the Platform or a network issue.
+   *
+   * Otherwise even bad API calls will get an Emfl_Response object
+   * that corresponds with the Platform's response format. See here:
+   * http://apidocs.emailer.emfluence.com/#responses
+   *
+   * Don't forget to check the 'success' property before assuming that
+   * the operation occurred correctly. If an error occurred, the 'data'
+   * property will be FALSE and the 'errors' property will have details.
+   *
+   * Finally, if the operation was successful, the 'data' property is a
+   * populated Emfl_PagingPlusRecords object with paging details and a records
+   * list of Emfl_EmailReport_Recipient recipients.
+   *
+   * @param array $params Keyed values, per API documentation
+   * @return Emfl_Response
+   * @see https://apidocs.emailer.emfluence.com/v1/endpoints/emailReports/recipients
+   */
+  function emailreports_recipients( $params = array() ) {
+    $response = $this->call('emailReports/recipients', $params);
+    if(empty($response)) return FALSE; // Transmission error
+    if(!empty($response->data)) {
+      require_once 'response_objects/wrapper.pagingplusrecords.class.inc';
+      require_once 'response_objects/emailreports.recipient.class.inc';
+      $response->data = new Emfl_PagingPlusRecords(
+          $response->data->paging,
+          $response->data->records,
+          'Emfl_EmailReport_Recipient'
+        );
+    }
+    return $response;
+  }
+
 }
 
 /**
