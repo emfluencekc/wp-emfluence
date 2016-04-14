@@ -31,7 +31,7 @@ class emfluence_email_signup extends WP_Widget {
         $response = $api->groups_search(array(
             'rpp' => 50,
             'page' => $page_number,
-        ));d($response);
+        ));
         if( !$response || !$response->success ){
           $more = FALSE;
           break;
@@ -99,16 +99,6 @@ class emfluence_email_signup extends WP_Widget {
         'title' => '',
         'company' => '',
         'email' => '',
-        'custom_1' => '',
-        'custom_2' => '',
-        'custom_3' => '',
-        'custom_4' => '',
-        'custom_5' => '',
-        'custom_6' => '',
-        'custom_7' => '',
-        'custom_8' => '',
-        'custom_9' => '',
-        'custom_10' => '',
     );
 
     if( !empty( $instance[ 'groups' ] ) ) $lists = implode(',', $instance['groups'] );
@@ -173,7 +163,7 @@ class emfluence_email_signup extends WP_Widget {
         // $data['phone'] = trim( $form_data['phone_number'] );
         $data['email'] = trim( $_POST['email'] );
         $data['customFields'] = array();
-        for( $i = 1; $i <= 10; $i++ ){
+        for( $i = 1; $i <= 255; $i++ ){
           $field = 'custom' . $i;
           $parameter = 'custom_' . $i;
           if( empty($_POST[$parameter]) ){
@@ -183,6 +173,7 @@ class emfluence_email_signup extends WP_Widget {
               'value' => trim( $_POST[$parameter] ),
           );
         }
+        if(empty($data['customFields'])) unset($data['customFields']);
         $result = $api->contacts_save($data);
 
         if( empty($result->success) ){
@@ -323,7 +314,7 @@ class emfluence_email_signup extends WP_Widget {
   }
 
   /**
-   * @param array $instance per $this->form()
+   * @param string $name Like 'First Name'
    * @param string $key Like 'first_name'
    * @param array $field Field definition. Like
    *  array(
@@ -336,66 +327,65 @@ class emfluence_email_signup extends WP_Widget {
    *    )
    * @return string
    */
-  protected function form_template_field($instance, $key, $field) {
+  protected function form_template_field($name, $key, $field) {
     $display_input = array(
         'id' => $this->get_field_id( $key . '_display' ),
         'name' => $this->get_field_name(  $key . '_display' ),
-        'checked' => $instance['fields'][$key]['display'] == 1? 'checked="checked"' : '',
+        'checked' => $field['display'] == 1? 'checked="checked"' : '',
         'disabled' => $key == 'email'? 'disabled="disabled"' : '',
     );
     $required_input = array(
         'id' => $this->get_field_id( $key . '_required' ),
         'name' => $this->get_field_name(  $key . '_required' ),
-        'checked' => $instance['fields'][$key]['required'] == 1? 'checked="checked"' : '',
+        'checked' => $field['required'] == 1? 'checked="checked"' : '',
         'disabled' => $key == 'email'? 'disabled="disabled"' : '',
     );
     $required_message_input = array(
         'id' => $this->get_field_id( $key . '_required_message' ),
         'name' => $this->get_field_name(  $key . '_required_message' ),
-        'value' => $instance['fields'][$key]['required_message'],
+        'value' => $field['required_message'],
     );
     $label_input = array(
         'id' => $this->get_field_id( $key . '_label' ),
         'name' => $this->get_field_name(  $key . '_label' ),
-        'value' => $instance['fields'][$key]['label'],
+        'value' => $field['label'],
     );
     $order_input = array(
         'id' => $this->get_field_id( $key . '_order' ),
         'name' => $this->get_field_name(  $key . '_order' ),
-        'value' => $instance['fields'][$key]['order'],
+        'value' => $field['order'],
     );
 
-    $output = '';
-    $output .= '<h3>' . __($field['name']) . '</h3>' . "\n";
-    $output .= '<p>' . "\n";
-    $output .=  '<label for="' . $display_input['id'] . '">' . "\n";
-    $output .=   '<input type="checkbox" id="' . $display_input['id'] . '" name="' . $display_input['name'] . '" value="1" ' . $display_input['checked'] . ' ' . $display_input['disabled'] . ' />' . "\n";
-    $output .=   __('Display');
-    $output .=   '</label>' . "\n";
-    $output .=   ' ';
-    $output .=  '<label for="' . $required_input['id'] . '">' . "\n";
-    $output .=   '<input type="checkbox" id="' . $required_input['id'] . '" name="' . $required_input['name'] . '" value="1" ' . $required_input['checked'] . ' ' . $display_input['disabled'] . ' />' . "\n";
-    $output .=   __('Required');
-    $output .=   '</label>' . "\n";
-    $output .= '</p>' . "\n";
-    $output .= '<p>' . "\n";
-    $output .=  '<label for="' . $required_message_input['id'] . '">' . __('Required Message') . '</label>' . "\n";
-    $output .=  '<input type="text" id="' . $required_message_input['id'] . '" name="' . $required_message_input['name'] . '" value="' . $required_message_input['value'] . '" style="width:100%;" />' . "\n";
-    $output .= '</p>' . "\n";
-    $output .= '<p>' . "\n";
-    $output .=  '<label for="' . $label_input['id'] . '">' . __('Label') . '</label>' . "\n";
-    $output .=  '<input type="text" id="' . $label_input['id'] . '" name="' . $label_input['name'] . '" value="' . $label_input['value'] . '" style="width:100%;" />' . "\n";
-    $output .= '</p>' . "\n";
-    $output .= '<p>' . "\n";
-    $output .=  '<label for="' . $order_input['id'] . '">' . __('Order') . '</label>' . "\n";
-    $output .=  '<input type="text" id="' . $order_input['id'] . '" name="' . $order_input['name'] . '" value="' . $order_input['value'] . '" style="width:100%;" />' . "\n";
-    $output .= '</p>' . "\n";
+    $output = '
+        <h3 data-variable-key="' . $key . '">' . __($name) . '</h3>
+        <p>
+          <label for="' . $display_input['id'] . '">
+            <input type="checkbox" id="' . $display_input['id'] . '" name="' . $display_input['name'] . '" value="1" ' . $display_input['checked'] . ' ' . $display_input['disabled'] . ' />
+            ' . __('Display') . '
+          </label>
+          <label for="' . $required_input['id'] . '">
+            <input type="checkbox" id="' . $required_input['id'] . '" name="' . $required_input['name'] . '" value="1" ' . $required_input['checked'] . ' ' . $display_input['disabled'] . ' />
+            ' . __('Required') . '
+          </label>
+        </p>
+        <p>
+          <label for="' . $required_message_input['id'] . '">' . __('Required Message') . '</label>
+          <input type="text" id="' . $required_message_input['id'] . '" name="' . $required_message_input['name'] . '" value="' . $required_message_input['value'] . '" style="width:100%;" />
+        </p>
+        <p>
+          <label for="' . $label_input['id'] . '">' . __('Label') . '</label>
+          <input type="text" id="' . $label_input['id'] . '" name="' . $label_input['name'] . '" value="' . $label_input['value'] . '" style="width:100%;" />
+        </p>
+        <p>
+          <label for="' . $order_input['id'] . '">' . __('Order') . '</label>
+          <input type="text" id="' . $order_input['id'] . '" name="' . $order_input['name'] . '" value="' . $order_input['value'] . '" style="width:100%;" />
+        </p>
+        ';
     return $output;
   }
 
   public function form( $instance ) {
     $options = get_option('emfluence_global');
-    //d($instance);
     $api = emfluence_get_api($options['api_key']);
     $ping = $api->ping();
     if( !$ping || !$ping->success ){
@@ -459,15 +449,6 @@ class emfluence_email_signup extends WP_Widget {
         ),
     );
 
-    $custom_field_structure = array(
-        'name' => 'Custom %d',
-        'display' => 0,
-        'required' => 0,
-        'required_message' => 'Custom %d is required.',
-        'label' => 'Custom %d:',
-        'order' => 6,
-      );
-
     $instance = wp_parse_args( (array) $instance, $defaults );
 
     $output = '';
@@ -489,19 +470,36 @@ class emfluence_email_signup extends WP_Widget {
 
     $output .= '<h3>' . __('Fields') . '</h3>' . "\n";
     foreach( $defaults['fields'] as $key => $field ){
-      $output .= $this->form_template_field($instance, $key, $field);
+      $output .= $this->form_template_field($defaults['fields'][$key]['name'], $key, $instance['fields'][$key]);
     }
 
-    $output .= '<div class="custom_variables">';
-    $output .= '<h3>' . __('Custom Variables') . '</h3>' . "\n";
-    $output .= $this->form_template_custom_variables_adder();
+    $output .= '
+        <div class="custom_variables">
+            <h3>' . __('Custom Variables') . '</h3>
+            ' . $this->form_template_custom_variables_adder();
     foreach( $instance['fields'] as $key => $field ) {
       if(isset($defaults['fields'][$key])) continue;
       if(empty($instance['fields'][$key]['display'])) continue;
-      $field['name'] = $field['field_name'];
-      $output .= $this->form_template_field($instance, $key, $field);
+      $variable_number = intval(str_replace('custom_', '', $key));
+      $name = sprintf(__('Custom Variable %d'), $variable_number);
+      $output .= $this->form_template_field($name, $key, $instance['fields'][$key]);
     }
-    $output .= '</div>';
+    $output .= '
+        </div>
+        <div class="custom_variable_template" style="display: none;">
+          ' . $this->form_template_field(
+            'Custom Variable CUSTOM_VARIABLE_NUMBER',
+            'custom_CUSTOM_VARIABLE_NUMBER',
+            array(
+                'name' => 'Custom Variable CUSTOM_VARIABLE_NUMBER',
+                'display' => 1,
+                'required' => 0,
+                'required_message' => 'Custom CUSTOM_VARIABLE_NUMBER is required.',
+                'label' => 'Custom CUSTOM_VARIABLE_NUMBER:',
+                'order' => 6,
+            )) . '
+        </div>
+      ';
 
     // Output the datalist for groups just once
     if( intval($this->number) == 0  ) {
@@ -567,86 +565,38 @@ class emfluence_email_signup extends WP_Widget {
         'label' => !empty($new_instance['email_label'])? stripslashes(trim($new_instance['email_label'])) : __('Email:'),
         'order' => is_numeric($new_instance['email_order'])? $new_instance['email_order'] : 5,
     );
-    $instance['fields']['custom_1'] = array(
-        'field_name' => 'custom_1',
-        'display' => $new_instance['custom_1_display'] == 1? 1 : 0,
-        'required' => $new_instance['custom_1_required'] == 1? 1  : 0,
-        'required_message' => !empty($new_instance['custom_1_required_message'])? stripslashes(trim($new_instance['custom_1_required_message'])) : 'Custom 1 is required.',
-        'label' => !empty($new_instance['custom_1_label'])? stripslashes(trim($new_instance['custom_1_label'])) : __('Custom 1:'),
-        'order' => is_numeric($new_instance['custom_1_order'])? $new_instance['custom_1_order'] : 6,
-    );
-    $instance['fields']['custom_2'] = array(
-        'field_name' => 'custom_2',
-        'display' => $new_instance['custom_2_display'] == 1? 1 : 0,
-        'required' => $new_instance['custom_2_required'] == 1? 1  : 0,
-        'required_message' => !empty($new_instance['custom_2_required_message'])? stripslashes(trim($new_instance['custom_2_required_message'])) : 'Custom 2 is required.',
-        'label' => !empty($new_instance['custom_2_label'])? stripslashes(trim($new_instance['custom_2_label'])) : __('Custom 2:'),
-        'order' => is_numeric($new_instance['custom_2_order'])? $new_instance['custom_2_order'] : 7,
-    );
-    $instance['fields']['custom_3'] = array(
-        'field_name' => 'custom_3',
-        'display' => $new_instance['custom_3_display'] == 1? 1 : 0,
-        'required' => $new_instance['custom_3_required'] == 1? 1  : 0,
-        'required_message' => !empty($new_instance['custom_3_required_message'])? stripslashes(trim($new_instance['custom_3_required_message'])) : 'Custom 3 is required.',
-        'label' => !empty($new_instance['custom_3_label'])? stripslashes(trim($new_instance['custom_3_label'])) : __('Custom 3:'),
-        'order' => is_numeric($new_instance['custom_3_order'])? $new_instance['custom_3_order'] : 8,
-    );
-    $instance['fields']['custom_4'] = array(
-        'field_name' => 'custom_4',
-        'display' => $new_instance['custom_4_display'] == 1? 1 : 0,
-        'required' => $new_instance['custom_4_required'] == 1? 1  : 0,
-        'required_message' => !empty($new_instance['custom_4_required_message'])? stripslashes(trim($new_instance['custom_4_required_message'])) : 'Custom 4 is required.',
-        'label' => !empty($new_instance['custom_4_label'])? stripslashes(trim($new_instance['custom_4_label'])) : __('Custom 4:'),
-        'order' => is_numeric($new_instance['custom_4_order'])? $new_instance['custom_4_order'] : 9,
-    );
-    $instance['fields']['custom_5'] = array(
-        'field_name' => 'custom_5',
-        'display' => $new_instance['custom_5_display'] == 1? 1 : 0,
-        'required' => $new_instance['custom_5_required'] == 1? 1  : 0,
-        'required_message' => !empty($new_instance['custom_5_required_message'])? stripslashes(trim($new_instance['custom_5_required_message'])) : 'Custom 5 is required.',
-        'label' => !empty($new_instance['custom_5_label'])? stripslashes(trim($new_instance['custom_5_label'])) : __('Custom 5:'),
-        'order' => is_numeric($new_instance['custom_5_order'])? $new_instance['custom_5_order'] : 10,
-    );
-    $instance['fields']['custom_6'] = array(
-        'field_name' => 'custom_6',
-        'display' => $new_instance['custom_6_display'] == 1? 1 : 0,
-        'required' => $new_instance['custom_6_required'] == 1? 1  : 0,
-        'required_message' => !empty($new_instance['custom_6_required_message'])? stripslashes(trim($new_instance['custom_6_required_message'])) : 'Custom 6 is required.',
-        'label' => !empty($new_instance['custom_6_label'])? stripslashes(trim($new_instance['custom_6_label'])) : __('Custom 6:'),
-        'order' => is_numeric($new_instance['custom_6_order'])? $new_instance['custom_6_order'] : 11,
-    );
-    $instance['fields']['custom_7'] = array(
-        'field_name' => 'custom_7',
-        'display' => $new_instance['custom_7_display'] == 1? 1 : 0,
-        'required' => $new_instance['custom_7_required'] == 1? 1  : 0,
-        'required_message' => !empty($new_instance['custom_7_required_message'])? stripslashes(trim($new_instance['custom_7_required_message'])) : 'Custom 7 is required.',
-        'label' => !empty($new_instance['custom_7_label'])? stripslashes(trim($new_instance['custom_7_label'])) : __('Custom 7:'),
-        'order' => is_numeric($new_instance['custom_7_order'])? $new_instance['custom_7_order'] : 12,
-    );
-    $instance['fields']['custom_8'] = array(
-        'field_name' => 'custom_8',
-        'display' => $new_instance['custom_8_display'] == 1? 1 : 0,
-        'required' => $new_instance['custom_8_required'] == 1? 1  : 0,
-        'required_message' => !empty($new_instance['custom_8_required_message'])? stripslashes(trim($new_instance['custom_8_required_message'])) : 'Custom 8 is required.',
-        'label' => !empty($new_instance['custom_8_label'])? stripslashes(trim($new_instance['custom_8_label'])) : __('Custom 8:'),
-        'order' => is_numeric($new_instance['custom_8_order'])? $new_instance['custom_8_order'] : 13,
-    );
-    $instance['fields']['custom_9'] = array(
-        'field_name' => 'custom_9',
-        'display' => $new_instance['custom_9_display'] == 1? 1 : 0,
-        'required' => $new_instance['custom_9_required'] == 1? 1  : 0,
-        'required_message' => !empty($new_instance['custom_9_required_message'])? stripslashes(trim($new_instance['custom_9_required_message'])) : 'Custom 9 is required.',
-        'label' => !empty($new_instance['custom_9_label'])? stripslashes(trim($new_instance['custom_9_label'])) : __('Custom 9:'),
-        'order' => is_numeric($new_instance['custom_9_order'])? $new_instance['custom_9_order'] : 14,
-    );
-    $instance['fields']['custom_10'] = array(
-        'field_name' => 'custom_10',
-        'display' => $new_instance['custom_10_display'] == 1? 1 : 0,
-        'required' => $new_instance['custom_10_required'] == 1? 1  : 0,
-        'required_message' => !empty($new_instance['custom_10_required_message'])? stripslashes(trim($new_instance['custom_10_required_message'])) : 'Custom 10 is required.',
-        'label' => !empty($new_instance['custom_10_label'])? stripslashes(trim($new_instance['custom_10_label'])) : __('Custom 10:'),
-        'order' => is_numeric($new_instance['custom_10_order'])? $new_instance['custom_10_order'] : 15,
-    );
+
+    // Custom variables
+    foreach($new_instance as $field_key=>$field_val) {
+      if(strpos($field_key, 'custom_') !== 0) continue;
+      $is_custom_display = (
+          strrpos($field_key, '_display') === (strlen($field_key) - strlen('_display'))
+          );
+      if(!$is_custom_display) continue;
+
+      // unset template fields.
+      $template_prefix = 'custom_CUSTOM_VARIABLE_NUMBER';
+      $is_template = (strpos($field_key, $template_prefix) === 0);
+      if($is_template) {
+        foreach($instance as $field_key_x=>$field_val_x) {
+          if(strpos($field_key_x, $template_prefix) !== 0) continue;
+          unset($instance[$field_key_x]);
+        }
+        continue;
+      }
+
+      $variable_number = intval(str_replace('custom_', '', $field_key));
+      if(empty($variable_number)) continue;
+      $key_prefix = 'custom_' . $variable_number;
+      $instance['fields'][$key_prefix] = array(
+          'field_name' => $key_prefix,
+          'display' => 1,
+          'required' => $new_instance[$key_prefix . '_required'] == 1? 1  : 0,
+          'required_message' => !empty($new_instance[$key_prefix . '_required_message'])? stripslashes(trim($new_instance[$key_prefix . '_required_message'])) : 'Custom ' . $variable_number . ' is required.',
+          'label' => !empty($new_instance[$key_prefix . '_label'])? stripslashes(trim($new_instance[$key_prefix . '_label'])) : 'Custom ' . $variable_number . ':',
+          'order' => is_numeric($new_instance[$key_prefix . '_order'])? $new_instance[$key_prefix . '_order'] : 6,
+        );
+    }
 
     // Unfortunately, these don't come through $new_instance
     $instance['groups'] = array_values($_POST['groups']);

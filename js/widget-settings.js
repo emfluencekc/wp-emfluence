@@ -1,6 +1,5 @@
-// Multiple instances of the widget may be used
-// Therefore all calls to this will be treated as static,
-// and require you to pass the target to be modified
+// Multiple instances of the widget may exist on the widget settings page.
+// This is completely functional programming.
 emfluenceEmailerWidget = {
 
   groups: {
@@ -17,7 +16,7 @@ emfluenceEmailerWidget = {
       $checkboxesContainer = this.getCheckboxesContainer($widget);
 
       // Prevent adding existing checkboxes back in
-      if( $checkboxesContainer.find('input[type=checkbox][value=' + values.id + ']').length > 0 ){
+      if( $checkboxesContainer.find('input[type="checkbox"][value="' + values.id + '"]').length > 0 ){
         alert(values.name + ' is already in the selected groups.');
         return;
       }
@@ -50,7 +49,45 @@ emfluenceEmailerWidget = {
         '<div><label for="' + id + '">\
           <input id="' + id + '" type="checkbox" value="' + values.id + '" name="groups[]" checked /> ' + values.name + '\
         </label></div>';
-      console.debug(html);
+      return html;
+    }
+
+  },
+
+  variables: {
+    add: function(element){
+      $widget = jQuery(element).parents('.widget');
+      $input = this.getInput($widget);
+
+      // Validate the value
+      var variableNumber = $input.val();
+      if( !variableNumber ) return;
+
+      $customVariablesContainer = this.getCustomVariablesContainer($widget);
+
+      // Prevent adding existing checkboxes back in
+      if( $customVariablesContainer.find('[data-variable-key="custom_' + variableNumber + '"]').length > 0 ){
+        alert(variableNumber + ' is already in the selected custom variables.');
+        return;
+      }
+
+      $customVariablesContainer.append( this.createVariableSection($widget, variableNumber) );
+      $input.val(null);
+    }
+    ,getInput: function($widget){
+      return $widget.find('.custom-variable-adder input');
+    }
+    ,getCustomVariablesContainer: function($widget){
+      return $widget.find('.custom_variables');
+    }
+    ,getCustomVariablesTemplate: function($widget) {
+      return $widget
+        .find('.custom_variable_template')
+        .html();
+    }
+    ,createVariableSection: function($widget, variableNumber){
+      var html = this.getCustomVariablesTemplate($widget)
+        .replace(new RegExp('CUSTOM_VARIABLE_NUMBER', 'g'), variableNumber);
       return html;
     }
 
