@@ -29,7 +29,7 @@ class emfluence_email_signup extends WP_Widget {
       $page_number = 1;
       while($more){
         $response = $api->groups_search(array(
-            'rpp' => 50,
+            'rpp' => 250,
             'page' => $page_number,
         ));
         if( !$response || !$response->success ){
