@@ -2,6 +2,12 @@
 // This is completely functional programming.
 emfluenceEmailerWidget = {
 
+  init: function() {
+    jQuery('.wp-emfluence').accordion({
+      heightStyle: "content"
+    });
+  },
+
   groups: {
     add: function(element){
       $widget = jQuery(element).parents('.widget');
@@ -54,6 +60,55 @@ emfluenceEmailerWidget = {
 
   },
 
+  fields: {
+    add: function(element){
+      $widget = jQuery(element).parents('.widget');
+      $input = this.getInput($widget);
+
+      // Validate the value
+      var fieldValue = $input.val();
+      var fieldSettings = $input.find('option:selected').data('settings');
+      if( !fieldValue || !fieldSettings ) return console.error('Field not found.');
+
+      $container = this.getContainer($widget);
+
+      // Prevent adding existing fields
+      if( $container.find('[data-variable-key="' + fieldValue + '"]').length > 0 ){
+        alert(fieldSettings['name'] + ' is already in the selected contact fields.');
+        return;
+      }
+
+      $container.append( this.createSection($widget, fieldValue, fieldSettings) );
+      $input.val(null);
+    }
+    ,getInput: function($widget){
+      return $widget.find('.basic-fields-adder select');
+    }
+    ,getContainer: function($widget){
+      return $widget.find('.basic_contact_fields');
+    }
+    ,getCustomTemplate: function($widget) {
+      return $widget
+        .find('.basic_contact_field_template')
+        .html();
+    }
+    ,createSection: function($widget, fieldKey, fieldSettings){
+      var topOrder = 1;
+      $widget.find('.basic_contact_fields .contact-field input.order').each(function(i, el) {
+        var myOrder = parseInt(el.value);
+        if(!isNaN(myOrder)) topOrder = Math.max(topOrder, myOrder);
+      });
+      var html = this.getCustomTemplate($widget)
+        .replace(new RegExp('CONTACT_FIELD_NAME', 'g'), fieldSettings['name'])
+        .replace(new RegExp('CONTACT_FIELD_KEY', 'g'), fieldKey)
+        .replace(new RegExp('CONTACT_FIELD_REQUIRED_MESSAGE', 'g'), fieldSettings['required_message'])
+        .replace(new RegExp('CONTACT_FIELD_LABEL', 'g'), fieldSettings['label'])
+        .replace(new RegExp('CONTACT_FIELD_ORDER', 'g'), topOrder+1);
+      return html;
+    }
+
+  },
+
   variables: {
     add: function(element){
       $widget = jQuery(element).parents('.widget');
@@ -93,5 +148,12 @@ emfluenceEmailerWidget = {
 
   }
 
-
 };
+
+jQuery(function() {
+  $ = jQuery;
+
+  emfluenceEmailerWidget.init();
+
+  $('body').ajaxSuccess(emfluenceEmailerWidget.init);
+});

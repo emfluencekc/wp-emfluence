@@ -40,11 +40,18 @@ function emfluence_emailer_admin_enqueue_scripts($hook) {
   if( !in_array($hook, array('widgets.php', 'customize.php')) ) {
     return;
   }
+  
+  wp_enqueue_style(
+      'emfluence-widget',
+      plugins_url( '/css/widget-settings.css', __FILE__ ),
+      array(),
+      filemtime(__DIR__ . '/css/widget-settings.css')
+    );
 
   wp_enqueue_script(
       'emfluence-emailer-widget'
       ,plugins_url( '/js/widget-settings.min.js', __FILE__ )
-      ,array('jquery')
+      ,array('jquery', 'jquery-ui-accordion', 'jquery-ui-datepicker')
   );
 
   // in JavaScript, object properties are accessed as ajax_object.ajax_url, ajax_object.we_value

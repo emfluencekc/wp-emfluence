@@ -1,0 +1,16 @@
+@import '_jquery-ui';
+
+.wp-emfluence {
+  .contact-field {
+    border-top: solid 1px #aaa;
+    padding: 5px 0 10px;
+  }
+  p.heading label {
+    padding-right: 10px;
+    display: inline-block;
+  }
+  label.heading {
+    font-weight: 600;
+    font-size: 1rem;
+  }
+}
