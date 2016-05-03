@@ -655,11 +655,6 @@ class emfluence_email_signup extends WP_Widget {
       $output .= '</datalist>';
     }
 
-    // TODO Current problems:
-    // 1. When creating a new instance, no new form is passed through here. (JS has to be super generic)
-    // 2. The datalist we're creating works well, but generating checkboxes 'on input' isn't ready.
-    // 3. We need to load the current groups of the instance in as checkboxes during form generation
-
     print '<div class="wp-emfluence">' . $output . '</div>';
   }
 
