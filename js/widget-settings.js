@@ -4,7 +4,9 @@ emfluenceEmailerWidget = {
 
   init: function() {
     jQuery('.wp-emfluence').accordion({
-      heightStyle: "content"
+      heightStyle: "content",
+      collapsible: true,
+      active: false
     });
   },
 
