@@ -104,7 +104,7 @@ class emfluence_email_signup extends WP_Widget {
         'title' => '',
         'company' => '',
         'email' => '',
-    );
+    ); // TODO: Account for more fields
 
     if( !empty( $instance[ 'groups' ] ) ) $lists = implode(',', $instance['groups'] );
     $title = apply_filters( 'Email Signup', empty( $instance[ 'title' ] ) ? __( 'Email Signup' ) : $instance[ 'title' ] );
@@ -165,8 +165,8 @@ class emfluence_email_signup extends WP_Widget {
         $data['lastName'] = !empty( $_POST['last_name'] )? trim( $_POST['last_name'] ) : '';
         $data['title'] = !empty( $_POST['title'] )? trim( $_POST['title'] ) : '';
         $data['company'] = !empty( $_POST['company'] )? trim( $_POST['company'] ) : '';
-        // $data['phone'] = trim( $form_data['phone_number'] );
         $data['email'] = trim( $_POST['email'] );
+        // TODO: Account for more basic contact fields.
         $data['customFields'] = array();
         for( $i = 1; $i <= 255; $i++ ){
           $field = 'custom' . $i;
@@ -240,24 +240,35 @@ class emfluence_email_signup extends WP_Widget {
       return ($a['order'] < $b['order']) ? -1 : 1;
     });
     foreach( $instance['fields'] as $key => $field ){
-      if( $field['display'] ){
-        $label = __($field['label']);
-        $placeholder = __( str_replace(':', '', $field['label']) );
-        $required = $field['required']? 'required' : '';
-        switch( $field['type'] ){
-          case 'text':
-          default:
-            $output .= '<div class="field row field-' . $key . '">' . "\n";
-            $output .= '<label for="emfluence_' . $key . '">' . $label . '';
-            if( $field['required'] ){
-              $output .= '<span class="required">*</span>';
-            }
-            $input_type = ($field['field_name']=='email') ? 'email' : 'text';
-            $output .= '</label>' . "\n";
-            $output .=   '<input placeholder="' . $placeholder . '" type="' . $input_type . '" name="' . $field['field_name'] . '" id="emfluence_' . $key . '" value="' . $values[$field['field_name']] . '" ' . $required . ' />' . "\n";
-            $output .= '</div>' . "\n";
-            break;
-        }
+      if( !$field['display'] ) continue;
+      $label = __($field['label']);
+      $placeholder = __( str_replace(':', '', $field['label']) );
+      $required = $field['required']? 'required' : '';
+      $field['type'] = $this->restrict_to_types($field['type']);
+      switch( $field['type'] ){
+        case 'text':
+        case 'email':
+        case 'date':
+        case 'number':
+          $output .= '<div class="field row field-' . $key . '">' . "\n";
+          $output .= '<label for="emfluence_' . $key . '">' . $label . '';
+          if( $field['required'] ){
+            $output .= '<span class="required">*</span>';
+          }
+          $output .= '</label>' . "\n";
+          $output .=   '<input placeholder="' . $placeholder . '" type="' . $field['type'] . '" name="' . $field['field_name'] . '" id="emfluence_' . $key . '" value="' . $values[$field['field_name']] . '" ' . $required . ' />' . "\n";
+          $output .= '</div>' . "\n";
+          break;
+        case 'textarea':
+          $output .= '<div class="field row field-' . $key . '">' . "\n";
+          $output .= '<label for="emfluence_' . $key . '">' . $label . '';
+          if( $field['required'] ){
+            $output .= '<span class="required">*</span>';
+          }
+          $output .= '</label>' . "\n";
+          $output .=   '<textarea placeholder="' . $placeholder . '" name="' . $field['field_name'] . '" id="emfluence_' . $key . '" ' . $required . '>' . $values[$field['field_name']] . '</textarea>' . "\n";
+          $output .= '</div>' . "\n";
+          break;
       }
     }
 
@@ -451,17 +462,19 @@ class emfluence_email_signup extends WP_Widget {
    * @return string
    */
   protected function form_template_field($name, $key, $field) {
+    $available_types = $this->form_get_allowed_types();
+
     $display_input = array(
         'id' => $this->get_field_id( $key . '_display' ),
         'name' => $this->get_field_name(  $key . '_display' ),
         'checked' => $field['display'] == 1? 'checked="checked"' : '',
-        'disabled' => $key == 'email'? 'disabled="disabled"' : '',
+        'disabled' => '',
     );
     $required_input = array(
         'id' => $this->get_field_id( $key . '_required' ),
         'name' => $this->get_field_name(  $key . '_required' ),
         'checked' => $field['required'] == 1? 'checked="checked"' : '',
-        'disabled' => $key == 'email'? 'disabled="disabled"' : '',
+        'disabled' => '',
     );
     $required_message_input = array(
         'id' => $this->get_field_id( $key . '_required_message' ),
@@ -478,6 +491,25 @@ class emfluence_email_signup extends WP_Widget {
         'name' => $this->get_field_name(  $key . '_order' ),
         'value' => $field['order'],
     );
+    $type_input = array(
+        'id' => $this->get_field_id( $key . '_type' ),
+        'name' => $this->get_field_name(  $key . '_type' ),
+        'value' => empty($field['type']) ? 'text' : $this->restrict_to_types($field['type']),
+        'options' => array(),
+        'disabled' => '',
+    );
+
+    if($key == 'email') {
+      $display_input['disabled'] = 'disabled="disabled"';
+      $required_input['disabled'] = 'disabled="disabled"';
+      $type_input['disabled'] = 'disabled="disabled"';
+      $type_input['value'] = 'email';
+    }
+
+    foreach($available_types as $type) {
+      $selected = ($type == $type_input['value'] ? 'selected="selected"' : '');
+      $type_input['options'][] = '<option ' . $selected . '>' . $type . '</option>';
+    }
 
     $output = '
         <div class="contact-field" data-variable-key="' . $key . '">
@@ -503,9 +535,35 @@ class emfluence_email_signup extends WP_Widget {
             <label for="' . $label_input['id'] . '">' . __('Label') . '</label>
             <input type="text" id="' . $label_input['id'] . '" name="' . $label_input['name'] . '" value="' . $label_input['value'] . '" style="width:100%;" />
           </p>
+          <p>
+            <label for="' . $type_input['id'] . '">' . __('Type') . '</label>
+            <select id="' . $type_input['id'] . '" name="' . $type_input['name'] . '" ' . $type_input['disabled'] . '>
+              ' . implode('', $type_input['options']) .'
+            </select>
+          </p>
         </div>
         ';
     return $output;
+  }
+
+  /**
+   * Get a list of allowed field types
+   * @return string[]
+   */
+  protected function form_get_allowed_types() {
+    return array(
+        'text', 'textarea', 'email', 'date', 'number'
+    );
+  }
+
+  /**
+   * Restrict a field type to the allowed types
+   * @param string $type
+   * @return string
+   */
+  protected function restrict_to_types($type) {
+    $allowed = $this->form_get_allowed_types();
+    return (array_search($type, $allowed) === FALSE ? 'text' : $type);
   }
 
   /**
@@ -526,21 +584,25 @@ class emfluence_email_signup extends WP_Widget {
             'name' => __('First Name'),
             'required_message' => __('First name is required.'),
             'label' => __('First Name:'),
+            'type' => 'text'
         ),
         'last_name' => array(
             'name' => __('Last Name'),
             'required_message' => __('Last name is required.'),
             'label' => __('Last Name:'),
+            'type' => 'text'
         ),
         'title' => array(
             'name' => __('Title'),
             'required_message' => __('Title is required.'),
             'label' => __('Title:'),
+            'type' => 'text'
         ),
         'company' => array(
             'name' => __('Company'),
             'required_message' => __('Company is required.'),
             'label' => __('Company:'),
+            'type' => 'text'
         ),
         'email' => array(
             'name' => 'Email',
@@ -548,6 +610,7 @@ class emfluence_email_signup extends WP_Widget {
             'required' => 1,
             'required_message' => 'Email address is required.',
             'label' => 'Email:',
+            'type' => 'email'
         ),
         'address1' => array(
             'name' => 'Address 1',
@@ -666,9 +729,12 @@ class emfluence_email_signup extends WP_Widget {
 
     $instance['fields'] = array();
 
+    // Force certain settings for email field
+    $instance['email_display'] = $instance['email_required'] = '1';
+    $instance['email_type'] = 'email';
+
     // Basic contact fields
     $defaults = $this->form_get_defaults();
-    $instance['email_display'] = $instance['email_required'] = '1'; // force display and required for email.
     foreach($defaults['fields'] as $field_key=>$default_field) {
       if(empty($instance[$field_key . '_display'])) continue;
       $instance['fields'][$field_key] = array(
@@ -678,6 +744,7 @@ class emfluence_email_signup extends WP_Widget {
           'required_message' => !empty($instance[$field_key . '_required_message'])? stripslashes(trim($instance[$field_key . '_required_message'])) : $field_key . ' address is required.',
           'label' => !empty($instance[$field_key . '_label'])? stripslashes(trim($instance[$field_key . '_label'])) : $default_field['label'],
           'order' => is_numeric($instance[$field_key . '_order'])? $instance[$field_key . '_order'] : 5,
+          'type' => empty($instance[$field_key . '_type']) ? 'text' : $this->restrict_to_types($instance[$field_key . '_type'])
       );
     }
     // Unset template fields.
@@ -716,6 +783,7 @@ class emfluence_email_signup extends WP_Widget {
           'required_message' => !empty($new_instance[$key_prefix . '_required_message'])? stripslashes(trim($new_instance[$key_prefix . '_required_message'])) : 'Custom ' . $variable_number . ' is required.',
           'label' => !empty($new_instance[$key_prefix . '_label'])? stripslashes(trim($new_instance[$key_prefix . '_label'])) : 'Custom ' . $variable_number . ':',
           'order' => is_numeric($new_instance[$key_prefix . '_order'])? $new_instance[$key_prefix . '_order'] : 6,
+          'type' => empty($instance[$key_prefix . '_type']) ? 'text' : $this->restrict_to_types($instance[$key_prefix . '_type'])
         );
     }
 
