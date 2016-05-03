@@ -36,6 +36,7 @@ class emfluence_email_signup extends WP_Widget {
       $response = $api->groups_search(array(
           'rpp' => 250,
           'page' => $page_number,
+          'type' => 'Static'
       ));
       if( !$response || !$response->success ){
         $more = FALSE;
