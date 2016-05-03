@@ -228,7 +228,7 @@ class emfluence_email_signup extends WP_Widget {
     }
 
     $current_page_url = remove_query_arg('sucess', $this->get_current_page_url());
-    $output .= '<form action="' . $current_page_url . '" method="POST">' . "\n";
+    $output .= '<form action="' . $current_page_url . '" method="POST" class="wp-emfluence">' . "\n";
     $output .= '<input type="hidden" name="action" value="email_signup" />' . "\n";
     $output .= '<input type="hidden" name="source" value="' . $current_page_url . '" />' . "\n";
     $output .= '<input type="hidden" name="groups" value="' . implode(',', $instance['groups']) . '" />' . "\n";
@@ -352,6 +352,41 @@ class emfluence_email_signup extends WP_Widget {
   }
 
   /**
+   * @param array $defaults
+   * @param array $instance
+   * @return string
+   */
+  protected function form_template_basic_fields($defaults, $instance) {
+    $output = '
+        <h3>' . __('General Contact Fields') . '</h3>
+        <div class="basic_contact_fields">
+            ';
+    $output .= $this->form_template_basic_fields_adder($defaults['fields']);
+    foreach( $defaults['fields'] as $key => $field ) {
+      if(empty($instance['fields'][$key]['display'])) continue;
+      $output .= $this->form_template_field($defaults['fields'][$key]['name'], $key, $instance['fields'][$key]);
+    }
+    $output .= '
+            <div class="basic_contact_field_template" style="display: none;">
+            ' . $this->form_template_field(
+            'CONTACT_FIELD_NAME',
+            'CONTACT_FIELD_KEY',
+            array(
+                'name' => 'CONTACT_FIELD_NAME',
+                'display' => 1,
+                'required' => 0,
+                'required_message' => 'CONTACT_FIELD_REQUIRED_MESSAGE',
+                'label' => 'CONTACT_FIELD_LABEL',
+                'order' => 'CONTACT_FIELD_ORDER',
+                'type' => 'text'
+            )) . '
+          </div>
+        </div>
+      ';
+    return $output;
+  }
+
+  /**
    * @return string
    */
   protected function form_template_custom_variables_adder() {
@@ -362,6 +397,42 @@ class emfluence_email_signup extends WP_Widget {
             <button type="button" onclick="emfluenceEmailerWidget.variables.add(this)">' . __('Add') . '</button>
           </p>
         </div>';
+    return $output;
+  }
+
+  /**
+   * @param array $defaults
+   * @param array $instance
+   * @return string
+   */
+  protected function form_template_custom_variables($defaults, $instance) {
+    $output = '
+        <h3>' . __('Custom Variables') . '</h3>
+        <div class="custom_variables">
+            ' . $this->form_template_custom_variables_adder();
+    foreach( $instance['fields'] as $key => $field ) {
+      if(isset($defaults['fields'][$key])) continue; // so we're only dealing with custom fields
+      if(empty($instance['fields'][$key]['display'])) continue;
+      $variable_number = intval(str_replace('custom_', '', $key));
+      $name = sprintf(__('Variable %d'), $variable_number);
+      $output .= $this->form_template_field($name, $key, $instance['fields'][$key]);
+    }
+    $output .= '
+          <div class="custom_variable_template" style="display: none;">
+            ' . $this->form_template_field(
+            'Variable CUSTOM_VARIABLE_NUMBER',
+            'custom_CUSTOM_VARIABLE_NUMBER',
+            array(
+                'name' => 'Variable CUSTOM_VARIABLE_NUMBER',
+                'display' => 1,
+                'required' => 0,
+                'required_message' => 'Custom CUSTOM_VARIABLE_NUMBER is required.',
+                'label' => 'Custom CUSTOM_VARIABLE_NUMBER:',
+                'order' => 6,
+            )) . '
+          </div>
+        </div>
+      ';
     return $output;
   }
 
@@ -568,66 +639,12 @@ class emfluence_email_signup extends WP_Widget {
 
     $defaults = $this->form_get_defaults();
     $instance = wp_parse_args( (array) $instance, $defaults );
+    $groups = emfluence_email_signup::get_groups();
 
     $output = $this->form_template_text_display($instance);
-
-    $groups = emfluence_email_signup::get_groups();
     $output .= $this->form_template_groups($instance, $groups);
-
-    $output .= '
-        <h3>' . __('General Contact Fields') . '</h3>
-        <div class="basic_contact_fields">
-            ';
-    $output .= $this->form_template_basic_fields_adder($defaults['fields']);
-    foreach( $defaults['fields'] as $key => $field ) {
-      if(empty($instance['fields'][$key]['display'])) continue;
-      $output .= $this->form_template_field($defaults['fields'][$key]['name'], $key, $instance['fields'][$key]);
-    }
-    $output .= '
-            <div class="basic_contact_field_template" style="display: none;">
-            ' . $this->form_template_field(
-              'CONTACT_FIELD_NAME',
-              'CONTACT_FIELD_KEY',
-              array(
-                  'name' => 'CONTACT_FIELD_NAME',
-                  'display' => 1,
-                  'required' => 0,
-                  'required_message' => 'CONTACT_FIELD_REQUIRED_MESSAGE',
-                  'label' => 'CONTACT_FIELD_LABEL',
-                  'order' => 'CONTACT_FIELD_ORDER',
-                  'type' => 'text'
-              )) . '
-          </div>
-        </div>
-      ';
-
-    $output .= '
-        <h3>' . __('Custom Variables') . '</h3>
-        <div class="custom_variables">
-            ' . $this->form_template_custom_variables_adder();
-    foreach( $instance['fields'] as $key => $field ) {
-      if(isset($defaults['fields'][$key])) continue; // so we're only dealing with custom fields
-      if(empty($instance['fields'][$key]['display'])) continue;
-      $variable_number = intval(str_replace('custom_', '', $key));
-      $name = sprintf(__('Variable %d'), $variable_number);
-      $output .= $this->form_template_field($name, $key, $instance['fields'][$key]);
-    }
-    $output .= '
-          <div class="custom_variable_template" style="display: none;">
-            ' . $this->form_template_field(
-              'Variable CUSTOM_VARIABLE_NUMBER',
-              'custom_CUSTOM_VARIABLE_NUMBER',
-              array(
-                  'name' => 'Variable CUSTOM_VARIABLE_NUMBER',
-                  'display' => 1,
-                  'required' => 0,
-                  'required_message' => 'Custom CUSTOM_VARIABLE_NUMBER is required.',
-                  'label' => 'Custom CUSTOM_VARIABLE_NUMBER:',
-                  'order' => 6,
-              )) . '
-          </div>
-        </div>
-      ';
+    $output .= $this->form_template_basic_fields($defaults, $instance);
+    $output .= $this->form_template_custom_variables($defaults, $instance);
 
     // Output the datalist for groups just once
     if( intval($this->number) == 0  ) {
@@ -653,46 +670,27 @@ class emfluence_email_signup extends WP_Widget {
     $instance = $new_instance;
 
     $instance['fields'] = array();
-    $instance['fields']['first_name'] = array(
-        'field_name' => 'first_name',
-        'display' => $new_instance['first_name_display'] == 1? 1 : 0,
-        'required' => $new_instance['first_name_required'] == 1? 1  : 0,
-        'required_message' => !empty($new_instance['first_name_required_message'])? stripslashes(trim($new_instance['first_name_required_message'])) : 'First name is required.',
-        'label' => !empty($new_instance['first_name_label'])? stripslashes(trim($new_instance['first_name_label'])) : __('First Name:'),
-        'order' => is_numeric($new_instance['first_name_order'])? $new_instance['first_name_order'] : 1,
-    );
-    $instance['fields']['last_name'] = array(
-        'field_name' => 'last_name',
-        'display' => $new_instance['last_name_display'] == 1? 1 : 0,
-        'required' => $new_instance['last_name_required'] == 1? 1  : 0,
-        'required_message' => !empty($new_instance['last_name_required_message'])? stripslashes(trim($new_instance['last_name_required_message'])) : 'Last name is required.',
-        'label' => !empty($new_instance['last_name_label'])? stripslashes(trim($new_instance['last_name_label'])) : __('Last Name:'),
-        'order' => is_numeric($new_instance['last_name_order'])? $new_instance['last_name_order'] : 2,
-    );
-    $instance['fields']['title'] = array(
-        'field_name' => 'title',
-        'display' => $new_instance['title_display'] == 1? 1 : 0,
-        'required' => $new_instance['title_required'] == 1? 1  : 0,
-        'required_message' => !empty($new_instance['title_required_message'])? stripslashes(trim($new_instance['title_required_message'])) : 'Title is required.',
-        'label' => !empty($new_instance['title_label'])? stripslashes(trim($new_instance['title_label'])) : __('Title:'),
-        'order' => is_numeric($new_instance['title_order'])? $new_instance['title_order'] : 3,
-    );
-    $instance['fields']['company'] = array(
-        'field_name' => 'company',
-        'display' => $new_instance['company_display'] == 1? 1 : 0,
-        'required' => $new_instance['company_required'] == 1? 1  : 0,
-        'required_message' => !empty($new_instance['company_required_message'])? stripslashes(trim($new_instance['company_required_message'])) : 'Company is required.',
-        'label' => !empty($new_instance['company_label'])? stripslashes(trim($new_instance['company_label'])) : __('Company:'),
-        'order' => is_numeric($new_instance['company_order'])? $new_instance['company_order'] : 4,
-    );
-    $instance['fields']['email'] = array(
-        'field_name' => 'email',
-        'display' => $new_instance['email_display'] = 1, // This cannot be optional
-        'required' => $new_instance['email_required'] = 1, // This cannot be optional
-        'required_message' => !empty($new_instance['email_required_message'])? stripslashes(trim($new_instance['email_required_message'])) : 'Email address is required.',
-        'label' => !empty($new_instance['email_label'])? stripslashes(trim($new_instance['email_label'])) : __('Email:'),
-        'order' => is_numeric($new_instance['email_order'])? $new_instance['email_order'] : 5,
-    );
+
+    // Basic contact fields
+    $defaults = $this->form_get_defaults();
+    $instance['email_display'] = $instance['email_required'] = '1'; // force display and required for email.
+    foreach($defaults['fields'] as $field_key=>$default_field) {
+      if(empty($instance[$field_key . '_display'])) continue;
+      $instance['fields'][$field_key] = array(
+          'field_name' => $field_key,
+          'display' => 1,
+          'required' => $instance[$field_key . '_required'] == 1 ? 1  : 0,
+          'required_message' => !empty($instance[$field_key . '_required_message'])? stripslashes(trim($instance[$field_key . '_required_message'])) : $field_key . ' address is required.',
+          'label' => !empty($instance[$field_key . '_label'])? stripslashes(trim($instance[$field_key . '_label'])) : $default_field['label'],
+          'order' => is_numeric($instance[$field_key . '_order'])? $instance[$field_key . '_order'] : 5,
+      );
+    }
+    // Unset template fields.
+    $template_prefix = 'CONTACT_FIELD_KEY';
+    foreach($instance as $field_key=>$field_val) {
+      if(strpos($field_key, $template_prefix) !== 0) continue;
+      unset($instance[$field_key]);
+    }
 
     // Custom variables
     foreach($new_instance as $field_key=>$field_val) {
