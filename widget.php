@@ -575,7 +575,7 @@ class emfluence_email_signup extends WP_Widget {
     $output .= $this->form_template_groups($instance, $groups);
 
     $output .= '
-        <h3>' . __('Contact Fields') . '</h3>
+        <h3>' . __('General Contact Fields') . '</h3>
         <div class="basic_contact_fields">
             ';
     $output .= $this->form_template_basic_fields_adder($defaults['fields']);
