@@ -93,12 +93,64 @@ class emfluence_email_signup extends WP_Widget {
     }
     return $pageURL;
   }
-  
-  function widget( $args, $instance ) {
+
+  /**
+   * Validate submitted values against widget settings.
+   * Return value is empty if validation passed.
+   * @param array $fields as saved in $instance
+   * @param array $values sanitized, trimmed submitted values
+   * @return string[]
+   */
+  protected function widget_validate($fields, $values) {
+    $messages = array();
+    foreach( $fields as $key => $field ){
+      if( $field['required'] && empty( $values[$key] ) ){
+        $messages[] = array( 'type' => 'error', 'value' => __( $field['required_message'] ) );
+      }
+      if($key == 'email') $field['type'] = 'email';
+      switch($field['type']) {
+        case 'email':
+          if(!$this->validate_email( $values[$key] )) {
+            $messages[] = array( 'type' => 'error', 'value' => sprintf(__('%s: Invalid email address.'), $field['name']) );
+          }
+        case 'number':
+          if(!is_numeric($values[$key])) {
+            $messages[] = array( 'type' => 'error', 'value' => sprintf(__('%s must be numeric'), $field['name']) );
+          }
+          break;
+        case 'date':
+          if(empty(strtotime($values[$key]))) {
+            $messages[] = array( 'type' => 'error', 'value' => sprintf(__('%s must be a date'), $field['name']) );
+          }
+          break;
+      }
+    }
+    return $messages;
+  }
+
+  /**
+   * Wrap the widget's content and return the html to output.
+   * @param string $content
+   * @return string
+   */
+  protected function widget_wrap_content($content) {
     extract( $args );
 
+    $title = apply_filters( 'Email Signup', empty( $instance[ 'title' ] ) ? __( 'Email Signup' ) : $instance[ 'title' ] );
+    if( $title ) $title = $before_title . '<span>' . $title . '</span>' . $after_title;
+
+    $output = $before_widget . '<form class="mail-form" method="post"><div class="holder"><div class="frame">';
+    $output .= $title;
+    $output .= $content;
+    $output .= '</div></div></form>' . $after_widget;
+
+    return $output;
+  }
+
+  function widget( $args, $instance ) {
+
+
     // Setup some defaults
-    $messages = array();
     $values = array(
         'first_name' => '',
         'last_name' => '',
@@ -108,25 +160,12 @@ class emfluence_email_signup extends WP_Widget {
     ); // TODO: Account for more fields
 
     if( !empty( $instance[ 'groups' ] ) ) $lists = implode(',', $instance['groups'] );
-    $title = apply_filters( 'Email Signup', empty( $instance[ 'title' ] ) ? __( 'Email Signup' ) : $instance[ 'title' ] );
 
     // Ensure we can't sign people up without lists
     if( empty($lists) ){
-      $output = '';
-
-      /* Before widget (defined by themes). */
-      $output .= $before_widget . '<form class="mail-form" method="post"><div class="holder"><div class="frame">';
-
-      /* Title of widget (before and after defined by themes). */
-      if ( $title )
-        $output .= $before_title . '<span>' . $title . '</span>' . $after_title;
-
-      $output .= '<p>' . __('Please select lists visitors may sign up for.') . '</p>' . "\n";
+      $output = '<p>' . __('Please select lists visitors may sign up for.') . '</p>' . "\n";
       $output .= '<p>' . __('Powered by emfluence.') . '</p>' . "\n";
-
-      $output .= '</div></div></form>' . $after_widget;
-
-      print $output;
+      print $this->widget_wrap_content($output);
       return;
     }
 
@@ -135,26 +174,16 @@ class emfluence_email_signup extends WP_Widget {
      */
 
     if( !empty($_POST) && $_POST['action'] == 'email_signup' ){
-      $output = '';
-      $valid = TRUE;
+      $defaults = $this->form_get_defaults();
+
       // Set the field values in case there's an error
       foreach( $_POST as $key => $value ){
         $values[$key] = htmlentities( trim( $value ) );
       }
 
-      foreach( $instance['fields'] as $key => $field ){
-        if( $field['required'] && empty( $values[$key] ) ){
-          $valid = FALSE;
-          $messages[] = array( 'type' => 'error', 'value' => __( $field['required_message'] ) );
-        } elseif ( $key == 'email' && !$this->validate_email( $values[$key] ) ){
-          $valid = FALSE;
-          $messages[] = array( 'type' => 'error', 'value' => __('Invalid email address.') );
-        }
-      }
+      $messages = $this->widget_validate($instance['fields'], $values);
 
-      if( $valid ){
-        $success = FALSE;
-        $messages = array();
+      if( empty($messages) ){
         // Try to subscribe them
         $options = get_option('emfluence_global');
         $api = emfluence_get_api($options['api_key']);
@@ -162,12 +191,14 @@ class emfluence_email_signup extends WP_Widget {
         $data = array();
         $data['groupIDs'] = !empty($_POST['groups'])? $_POST['groups'] : '';
         $data['originalSource'] = trim( $_POST['source'] );
-        $data['firstName'] = !empty( $_POST['first_name'] )? trim( $_POST['first_name'] ) : '';
-        $data['lastName'] = !empty( $_POST['last_name'] )? trim( $_POST['last_name'] ) : '';
-        $data['title'] = !empty( $_POST['title'] )? trim( $_POST['title'] ) : '';
-        $data['company'] = !empty( $_POST['company'] )? trim( $_POST['company'] ) : '';
-        $data['email'] = trim( $_POST['email'] );
-        // TODO: Account for more basic contact fields.
+
+        // basic contact fields
+        foreach($instance['fields'] as $key=>$field) {
+          if(empty($values[$key]) || empty($defaults['fields'][$key])) continue;
+          $platform_key = $defaults['fields'][$key]['platform'];
+          $data[$platform_key] = trim( $_POST[$key] );
+        }
+        // custom variables
         $data['customFields'] = array();
         for( $i = 1; $i <= 255; $i++ ){
           $field = 'custom' . $i;
@@ -176,44 +207,39 @@ class emfluence_email_signup extends WP_Widget {
             continue;
           }
           $data['customFields'][$field] = array(
-              'value' => trim( $_POST[$parameter] ),
+            'value' => trim( $_POST[$parameter] ),
           );
         }
         if(empty($data['customFields'])) unset($data['customFields']);
         $result = $api->contacts_save($data);
 
-        if( empty($result->success) ){
-          $messages[] = array('type' => 'error', 'value' => __('An error occurred contacting the email service.'));
+        if( empty($result) ) {
+          wp_mail(
+              get_bloginfo('admin_email'),
+              'Error sending contact form to emfluence Marketing Platform',
+              "Transmission error. \n\nSubmission data: \n" . wp_json_encode($data)
+          );
+          $messages[] = array('type' => 'error', 'value' => __('An error occurred submitting the form.'));
+        } elseif( empty($result->success) ){
+          wp_mail(
+              get_bloginfo('admin_email'),
+              'Error sending contact form to emfluence Marketing Platform',
+              "Errors: \n" . wp_json_encode($result->errors) . "\n\nSubmission data: \n" . wp_json_encode($data)
+            );
+          $messages[] = array('type' => 'error', 'value' => __('An error occurred submitting the form.'));
         } else {
-          /* Before widget (defined by themes). */
-          $output .= $before_widget . '<form class="mail-form" method="post"><div class="holder"><div class="frame">';
-
-          /* Title of widget (before and after defined by themes). */
-          if ( $title ){
-            $output .= $before_title . '<span>' . $title . '</span>' . $after_title;
-
-            ob_start();
-            get_template_part('emfluence/success');
-            $message = ob_get_clean();
-            if(empty($message)) $message = file_get_contents( 'theme/success.php', TRUE);
-            $output .= $message;
-
-            $output .= '</div></div></form>' . $after_widget;
-
-            print $output;
-            return;
-          }
+          ob_start();
+          get_template_part('emfluence/success');
+          $message = ob_get_clean();
+          // TODO: Look for a message in $instance
+          if(empty($message)) $message = file_get_contents( 'theme/success.php', TRUE);
+          print $this->widget_wrap_content($message);
+          return;
         }
       }
     }
 
-    /* Before widget (defined by themes). */
-    $output .= $before_widget . '<form class="mail-form" method="post"><div class="holder"><div class="frame">';
-
-    /* Title of widget (before and after defined by themes). */
-    if ( $title ) {
-      $output .= $before_title . '<span>' . $title . '</span>' . $after_title;
-    }
+    $output = '';
 
     // Output all messages
     if( !empty($messages) ){
@@ -229,7 +255,6 @@ class emfluence_email_signup extends WP_Widget {
     }
 
     $current_page_url = remove_query_arg('sucess', $this->get_current_page_url());
-    $output .= '<form action="' . $current_page_url . '" method="POST" class="wp-emfluence">' . "\n";
     $output .= '<input type="hidden" name="action" value="email_signup" />' . "\n";
     $output .= '<input type="hidden" name="source" value="' . $current_page_url . '" />' . "\n";
     $output .= '<input type="hidden" name="groups" value="' . implode(',', $instance['groups']) . '" />' . "\n";
@@ -274,13 +299,8 @@ class emfluence_email_signup extends WP_Widget {
     }
 
     $output .= '<div class="row actions"><input type="submit" class="submit" value="' . htmlentities( $instance['submit'], ENT_QUOTES ) . '" /></div>' . "\n";
-    $output .= '</form>' . "\n";
 
-    /* After widget (defined by themes). */
-    $output .= '</div></div></form>' . $after_widget;
-
-    echo $output;
-
+    echo $this->widget_wrap_content($output);
     return;
   }
 
@@ -585,25 +605,29 @@ class emfluence_email_signup extends WP_Widget {
             'name' => __('First Name'),
             'required_message' => __('First name is required.'),
             'label' => __('First Name:'),
-            'type' => 'text'
+            'type' => 'text',
+            'platform' => 'firstName'
         ),
         'last_name' => array(
             'name' => __('Last Name'),
             'required_message' => __('Last name is required.'),
             'label' => __('Last Name:'),
-            'type' => 'text'
+            'type' => 'text',
+            'platform' => 'lastName'
         ),
         'title' => array(
             'name' => __('Title'),
             'required_message' => __('Title is required.'),
             'label' => __('Title:'),
-            'type' => 'text'
+            'type' => 'text',
+            'platform' => 'title'
         ),
         'company' => array(
             'name' => __('Company'),
             'required_message' => __('Company is required.'),
             'label' => __('Company:'),
-            'type' => 'text'
+            'type' => 'text',
+            'platform' => 'company'
         ),
         'email' => array(
             'name' => 'Email',
@@ -611,25 +635,29 @@ class emfluence_email_signup extends WP_Widget {
             'required' => 1,
             'required_message' => 'Email address is required.',
             'label' => 'Email:',
-            'type' => 'email'
+            'type' => 'email',
+            'platform' => 'email'
         ),
         'address1' => array(
             'name' => 'Address 1',
             'required_message' => 'Address 1 is required.',
             'label' => 'Address 1:',
-            'type' => 'text'
+            'type' => 'text',
+            'platform' => 'address1'
         ),
         'address2' => array(
             'name' => 'Address 2',
             'required_message' => 'Address 2 is required.',
             'label' => 'Address 2:',
-            'type' => 'text'
+            'type' => 'text',
+            'platform' => 'address2'
         ),
         'city' => array(
             'name' => 'City',
             'required_message' => 'City is required.',
             'label' => 'City:',
-            'type' => 'text'
+            'type' => 'text',
+            'platform' => 'city'
         ),
         'state' => array(
             'name' => 'State',
@@ -641,43 +669,50 @@ class emfluence_email_signup extends WP_Widget {
             'name' => 'Zip Code',
             'required_message' => 'Zip Code is required.',
             'label' => 'Zip Code:',
-            'type' => 'text'
+            'type' => 'text',
+            'platform' => 'zipCode'
         ),
         'country' => array(
             'name' => 'Country',
             'required_message' => 'Country is required.',
             'label' => 'Country:',
-            'type' => 'text'
+            'type' => 'text',
+            'platform' => 'country'
         ),
         'phone' => array(
             'name' => 'Phone',
             'required_message' => 'Phone is required.',
             'label' => 'Phone:',
-            'type' => 'text'
+            'type' => 'text',
+            'platform' => 'phone'
         ),
         'fax' => array(
             'name' => 'Fax',
             'required_message' => 'Fax is required.',
             'label' => 'Fax:',
-            'type' => 'text'
+            'type' => 'text',
+            'platform' => 'fax'
         ),
         'dateofbirth' => array(
             'name' => 'Date of birth',
             'required_message' => 'Date of birth is required.',
             'label' => 'Date of birth:',
-            'type' => 'date'
+            'type' => 'date',
+            'platform' => 'dateofbirth'
         ),
         'notes' => array(
             'name' => 'Notes',
             'required_message' => 'Notes is required.',
             'label' => 'Notes:',
-            'type' => 'text'
+            'type' => 'text',
+            'platform' => 'notes'
         ),
         'memo' => array(
             'name' => 'Memo',
             'required_message' => 'Memo is required.',
             'label' => 'Memo:',
-            'type' => 'textarea'
+            'type' => 'textarea',
+            'platform' => 'memo'
         )
     );
 
