@@ -315,7 +315,7 @@ class emfluence_email_signup extends WP_Widget {
       <h3>' . __('Groups') . '</h3>
       <div class="groups">
         <div class="filter">
-          <p>' . __('Search for any group by name to add them to the list of options for users.') . '</p>
+          <p>' . __('Search for any group by name. Contacts will be added to all groups that you select.') . '</p>
           <p>
             <input list="emfluence-emailer-groups-list"/>
             <button type="button" onclick="emfluenceEmailerWidget.groups.add(this)">' . __('Add') . '</button>
