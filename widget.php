@@ -102,26 +102,33 @@ class emfluence_email_signup extends WP_Widget {
    * @return string[]
    */
   protected function widget_validate($fields, $values) {
+    $defaults = $this->form_get_defaults();
     $messages = array();
     foreach( $fields as $key => $field ){
       if( $field['required'] && empty( $values[$key] ) ){
         $messages[] = array( 'type' => 'error', 'value' => __( $field['required_message'] ) );
       }
-      if($key == 'email') $field['type'] = 'email';
+      $field_name = isset($defaults['fields'][$key]) ? $defaults['fields'][$key]['name'] : str_replace(':', '', $field['label']);
+      switch($key) {
+        case 'email':
+          $field['type'] = 'email';
+          break;
+      }
       switch($field['type']) {
         case 'email':
           if(!$this->validate_email( $values[$key] )) {
-            $messages[] = array( 'type' => 'error', 'value' => sprintf(__('%s: Invalid email address.'), $field['name']) );
+            $messages[] = array( 'type' => 'error', 'value' => sprintf(__('%s: Invalid email address.'), $field_name) );
           }
+        break;
         case 'number':
           if(!is_numeric($values[$key])) {
-            $messages[] = array( 'type' => 'error', 'value' => sprintf(__('%s must be numeric'), $field['name']) );
+            $messages[] = array( 'type' => 'error', 'value' => sprintf(__('%s: Must be numeric.'), $field_name) );
           }
           break;
         case 'date':
           $time = strtotime($values[$key]);
           if(empty($time)) {
-            $messages[] = array( 'type' => 'error', 'value' => sprintf(__('%s must be a date'), $field['name']) );
+            $messages[] = array( 'type' => 'error', 'value' => sprintf(__('%s: Must be a date.'), $field_name) );
           }
           break;
       }
@@ -212,15 +219,13 @@ class emfluence_email_signup extends WP_Widget {
               'Error sending contact form to emfluence Marketing Platform',
               "Transmission error. \n\nSubmission data: \n" . wp_json_encode($data)
           );
-          $messages[] = array('type' => 'error', 'value' => __('An error occurred submitting the form.'));
+          $messages[] = array('type' => 'error', 'value' => __('An error occurred submitting the form. We have been notified. Please try again later.'));
         } elseif( empty($result->success) ){
-          wp_mail(
-              get_bloginfo('admin_email'),
-              'Error sending contact form to emfluence Marketing Platform',
-              "Errors: \n" . wp_json_encode($result->errors) . "\n\nSubmission data: \n" . wp_json_encode($data)
-            );
-          $messages[] = array('type' => 'error', 'value' => __('An error occurred submitting the form.'));
+          foreach($result->errors as $err) {
+            $messages[] = array('type' => 'error', 'value' => __($err));
+          }
         } else {
+          // SUCCESS!
           ob_start();
           get_template_part('emfluence/success');
           $message = ob_get_clean();
@@ -228,9 +233,9 @@ class emfluence_email_signup extends WP_Widget {
           if(empty($message)) $message = file_get_contents( 'theme/success.php', TRUE);
           print $this->widget_wrap_content($args, $message);
           return;
-        }
-      }
-    }
+        } // result of attempted push to platform
+      } // passed initial validation
+    } // attempted submission
 
     $output = '';
 
