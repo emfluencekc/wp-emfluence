@@ -119,7 +119,8 @@ class emfluence_email_signup extends WP_Widget {
           }
           break;
         case 'date':
-          if(empty(strtotime($values[$key]))) {
+          $time = strtotime($values[$key]);
+          if(empty($time)) {
             $messages[] = array( 'type' => 'error', 'value' => sprintf(__('%s must be a date'), $field['name']) );
           }
           break;
