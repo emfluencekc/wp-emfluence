@@ -107,7 +107,7 @@ class emfluence_email_signup extends WP_Widget {
     foreach( $fields as $key => $field ){
       if( $field['required'] && empty( $values[$key] ) ){
         $messages[] = array( 'type' => 'error', 'value' => __( $field['required_message'] ) );
-      }
+      } elseif(empty($values[$key])) continue;
       $field_name = isset($defaults['fields'][$key]) ? $defaults['fields'][$key]['name'] : str_replace(':', '', $field['label']);
       switch($key) {
         case 'email':
@@ -178,7 +178,8 @@ class emfluence_email_signup extends WP_Widget {
 
       // Set the field values in case there's an error
       foreach( $_POST as $key => $value ){
-        $values[$key] = htmlentities( trim( $value ) );
+        $value = htmlentities( trim( $value ) );
+        if(!empty($value)) $values[$key] = $value;
       }
 
       $messages = $this->widget_validate($instance['fields'], $values);
@@ -226,10 +227,12 @@ class emfluence_email_signup extends WP_Widget {
           }
         } else {
           // SUCCESS!
-          ob_start();
-          get_template_part('emfluence/success');
-          $message = ob_get_clean();
-          // TODO: Look for a message in $instance
+          if(!empty($instance['success'])) $message = nl2br(wp_kses_post($instance['success']));
+          if(empty($message)) {
+            ob_start();
+            get_template_part('emfluence/success');
+            $message = ob_get_clean();
+          }
           if(empty($message)) $message = file_get_contents( 'theme/success.php', TRUE);
           print $this->widget_wrap_content($args, $message);
           return;
@@ -243,13 +246,13 @@ class emfluence_email_signup extends WP_Widget {
     if( !empty($messages) ){
       $output .= '<ul class="messages">';
       foreach($messages as $message){
-        $output .= '<li class="message ' . $message['type'] . '">' . __($message['value']) . '</li>';
+        $output .= '<li class="message ' . $message['type'] . '">' . esc_html(__($message['value'])) . '</li>';
       }
       $output .= '</ul>';
     }
 
     if( !empty($instance['text']) ) {
-      $output .= '<div class="lead">' . wpautop($instance['text']) . '</div>';
+      $output .= '<div class="lead">' . wpautop(wp_kses_post($instance['text'])) . '</div>';
     }
 
     $current_page_url = remove_query_arg('sucess', $this->get_current_page_url());
@@ -275,28 +278,28 @@ class emfluence_email_signup extends WP_Widget {
         case 'date':
         case 'number':
           $output .= '<div class="field row field-' . $key . '">' . "\n";
-          $output .= '<label for="emfluence_' . $key . '">' . $label . '';
+          $output .= '<label for="emfluence_' . $key . '">' . esc_html($label) . '';
           if( $field['required'] ){
             $output .= '<span class="required">*</span>';
           }
           $output .= '</label>' . "\n";
-          $output .=   '<input placeholder="' . $placeholder . '" type="' . $field['type'] . '" name="' . $field['field_name'] . '" id="emfluence_' . $key . '" value="' . $values[$field['field_name']] . '" ' . $required . ' />' . "\n";
+          $output .=   '<input placeholder="' . esc_attr($placeholder) . '" type="' . $field['type'] . '" name="' . $field['field_name'] . '" id="emfluence_' . $key . '" value="' . esc_attr($values[$field['field_name']]) . '" ' . $required . ' />' . "\n";
           $output .= '</div>' . "\n";
           break;
         case 'textarea':
           $output .= '<div class="field row field-' . $key . '">' . "\n";
-          $output .= '<label for="emfluence_' . $key . '">' . $label . '';
+          $output .= '<label for="emfluence_' . $key . '">' . esc_html($label) . '';
           if( $field['required'] ){
             $output .= '<span class="required">*</span>';
           }
           $output .= '</label>' . "\n";
-          $output .=   '<textarea placeholder="' . $placeholder . '" name="' . $field['field_name'] . '" id="emfluence_' . $key . '" ' . $required . '>' . $values[$field['field_name']] . '</textarea>' . "\n";
+          $output .=   '<textarea placeholder="' . esc_attr($placeholder) . '" name="' . $field['field_name'] . '" id="emfluence_' . $key . '" ' . $required . '>' . esc_html($values[$field['field_name']]) . '</textarea>' . "\n";
           $output .= '</div>' . "\n";
           break;
       }
     }
 
-    $output .= '<div class="row actions"><input type="submit" class="submit" value="' . htmlentities( $instance['submit'], ENT_QUOTES ) . '" /></div>' . "\n";
+    $output .= '<div class="row actions"><input type="submit" class="submit" value="' . esc_html($instance['submit']) . '" /></div>' . "\n";
 
     echo $this->widget_wrap_content($args, $output);
     return;
@@ -356,6 +359,11 @@ class emfluence_email_signup extends WP_Widget {
         <p>
           <label for="' . $this->get_field_id( 'submit' ) . '">' . __('Submit button') . ':</label>
           <input type="text" id="' . $this->get_field_id( 'submit' ) . '" name="' . $this->get_field_name( 'submit' ) . '" value="' . $instance['submit'] . '" style="width:100%;" />
+        </p>
+        <p>
+          <label for="' . $this->get_field_id( 'success' ) . '">' . __('Success message') . ':</label>
+          <textarea id="' . $this->get_field_id( 'success' ) . '" name="' . $this->get_field_name( 'success' ) . '" style="width:100%;" >' . $instance['success'] . '</textarea>
+          NOTE: If you set the success message here, any theme template file emfluence/success.php will be ignored.
         </p>
       </div>' . "\n";
     return $output;
@@ -828,11 +836,14 @@ class emfluence_email_signup extends WP_Widget {
     $instance['title'] = stripslashes($new_instance['title']);
     $instance['text'] = stripslashes($new_instance['text']);
     $instance['submit'] = stripslashes($new_instance['submit']);
+    $instance['success'] = stripslashes($new_instance['success']);
 
     // If the current user isn't allowed to use unfiltered HTML, filter it
     if ( !current_user_can('unfiltered_html') ) {
       $instance['title'] = strip_tags($new_instance['title']);
       $instance['text'] = strip_tags($new_instance['text']);
+      $instance['submit'] = strip_tags($new_instance['submit']);
+      $instance['success'] = strip_tags($new_instance['success']);
       foreach($instance['fields'] as &$field){
         $field['label'] = strip_tags($field['label']);
         $field['required_message'] = strip_tags($field['required_message']);
