@@ -134,7 +134,7 @@ class emfluence_email_signup extends WP_Widget {
    * @param string $content
    * @return string
    */
-  protected function widget_wrap_content($content) {
+  protected function widget_wrap_content($args, $content) {
     extract( $args );
 
     $title = apply_filters( 'Email Signup', empty( $instance[ 'title' ] ) ? __( 'Email Signup' ) : $instance[ 'title' ] );
@@ -149,7 +149,6 @@ class emfluence_email_signup extends WP_Widget {
   }
 
   function widget( $args, $instance ) {
-
 
     // Setup some defaults
     $values = array(
@@ -166,7 +165,7 @@ class emfluence_email_signup extends WP_Widget {
     if( empty($lists) ){
       $output = '<p>' . __('Please select lists visitors may sign up for.') . '</p>' . "\n";
       $output .= '<p>' . __('Powered by emfluence.') . '</p>' . "\n";
-      print $this->widget_wrap_content($output);
+      print $this->widget_wrap_content($args, $output);
       return;
     }
 
@@ -234,7 +233,7 @@ class emfluence_email_signup extends WP_Widget {
           $message = ob_get_clean();
           // TODO: Look for a message in $instance
           if(empty($message)) $message = file_get_contents( 'theme/success.php', TRUE);
-          print $this->widget_wrap_content($message);
+          print $this->widget_wrap_content($args, $message);
           return;
         }
       }
@@ -301,7 +300,7 @@ class emfluence_email_signup extends WP_Widget {
 
     $output .= '<div class="row actions"><input type="submit" class="submit" value="' . htmlentities( $instance['submit'], ENT_QUOTES ) . '" /></div>' . "\n";
 
-    echo $this->widget_wrap_content($output);
+    echo $this->widget_wrap_content($args, $output);
     return;
   }
 
