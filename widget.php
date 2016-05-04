@@ -150,14 +150,7 @@ class emfluence_email_signup extends WP_Widget {
 
   function widget( $args, $instance ) {
 
-    // Setup some defaults
-    $values = array(
-        'first_name' => '',
-        'last_name' => '',
-        'title' => '',
-        'company' => '',
-        'email' => '',
-    ); // TODO: Account for more fields
+    $values = array();
 
     if( !empty( $instance[ 'groups' ] ) ) $lists = implode(',', $instance['groups'] );
 
