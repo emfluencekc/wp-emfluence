@@ -156,7 +156,12 @@ class emfluence_email_signup extends WP_Widget {
   }
 
   function widget( $args, $instance ) {
-
+    /* TODO: Support more than one widget form per page.
+     * Currently this plugin works by rendering the form and submitting to the same page.
+     * It assumes that the form has been submitted by this instance of the widget.
+     * So multiple forms on the same page would try to all process the submission at the same time.
+     * We could probably resolve this by identifying the instance ID in the form.
+     */
     $values = array();
 
     if( !empty( $instance[ 'groups' ] ) ) $lists = implode(',', $instance['groups'] );

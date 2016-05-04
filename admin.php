@@ -11,7 +11,7 @@ add_filter("plugin_action_links_$plugin", 'emfluence_emailer_settings_link' );
 
 // Register the settings page
 function emfluence_emailer_admin_menu() {
-  add_options_page('Emfluence Marketing Platform Global Settings', 'Emfluence Marketing Platform', 'manage_options', 'emfluence_emailer', '_emfluence_emailer_options_page');
+  add_options_page('emfluence Marketing Platform Global Settings', 'emfluence Marketing Platform', 'manage_options', 'emfluence_emailer', '_emfluence_emailer_options_page');
 }
 add_action('admin_menu', 'emfluence_emailer_admin_menu');
 
