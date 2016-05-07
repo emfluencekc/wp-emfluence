@@ -105,7 +105,9 @@ class emfluence_email_signup extends WP_Widget {
     $defaults = $this->form_get_defaults();
     $messages = array();
     foreach( $fields as $key => $field ){
-      if( $field['required'] && empty( $values[$key] ) ){
+      if( $field['required'] && ($field['type'] === 'true-false') && !isset($values[$key])) {
+        $messages[] = array( 'type' => 'error', 'value' => __( $field['required_message'] ) );
+      } elseif( $field['required'] && ($field['type'] !== 'true-false') && empty( $values[$key] ) ){
         $messages[] = array( 'type' => 'error', 'value' => __( $field['required_message'] ) );
       } elseif(empty($values[$key])) continue;
       $field_name = isset($defaults['fields'][$key]) ? $defaults['fields'][$key]['name'] : str_replace(':', '', $field['label']);
@@ -183,11 +185,11 @@ class emfluence_email_signup extends WP_Widget {
 
       // Set the field values in case there's an error
       foreach( $_POST as $key => $value ){
-        $value = htmlentities( trim( $value ) );
-        if(!empty($value)) $values[$key] = $value;
+        $values[$key] = htmlentities( trim( $value ) );
       }
 
       $messages = $this->widget_validate($instance['fields'], $values);
+      array_filter($values);
 
       if( empty($messages) ){
         // Try to subscribe them
@@ -300,6 +302,19 @@ class emfluence_email_signup extends WP_Widget {
           $output .= '</label>' . "\n";
           $output .=   '<textarea placeholder="' . esc_attr($placeholder) . '" name="' . $field['field_name'] . '" id="emfluence_' . $key . '" ' . $required . '>' . esc_html($values[$field['field_name']]) . '</textarea>' . "\n";
           $output .= '</div>' . "\n";
+          break;
+        case 'true-false':
+          $has_value = isset($values[$field['field_name']]);
+          $yes_checked = ($has_value && $values[$field['field_name']]) ? 'checked="checked"' : '';
+          $no_checked = ($has_value && !$values[$field['field_name']]) ? 'checked="checked"' : '';
+          $required = $field['required'] ? '<span class="required">*</span>' : '';
+          $output .= '
+          <div class="field row field-' . $key . '">
+            <label for="emfluence_' . $key . '">' . esc_html($label) . $required . '</label>
+            <div class="radio"><input type="radio" name="' . $field['field_name'] . '" value="1" ' . $yes_checked . '>' . __('Yes') . '</div>
+            <div class="radio"><input type="radio" name="' . $field['field_name'] . '" value="0" ' . $no_checked . '>' . __('No') . '</div>
+          </div>' . "\n";
+          break;
           break;
       }
     }
@@ -584,7 +599,7 @@ class emfluence_email_signup extends WP_Widget {
    */
   protected function form_get_allowed_types() {
     return array(
-        'text', 'textarea', 'email', 'date', 'number'
+        'text', 'textarea', 'email', 'date', 'number', 'true-false'
     );
   }
 
