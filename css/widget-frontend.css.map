@@ -1,0 +1,7 @@
+{
+"version": 3,
+"mappings": "AACE,sCAAe,CACb,KAAK,CAAE,GAAG,CAEZ,uEACa,CACX,OAAO,CAAE,OAAO",
+"sources": ["widget-frontend.scss"],
+"names": [],
+"file": "widget-frontend.css"
+}

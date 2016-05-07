@@ -322,6 +322,12 @@ class emfluence_email_signup extends WP_Widget {
     $output .= '<div class="row actions"><input type="submit" class="submit" value="' . esc_html($instance['submit']) . '" /></div>' . "\n";
 
     echo $this->widget_wrap_content($args, $output);
+    if(apply_filters('wp-emfluence-use-default-styles', TRUE)) wp_enqueue_style(
+        'wp-emfluence',
+        plugins_url( '/css/widget-frontend.css', __FILE__ ),
+        array(),
+        filemtime(__DIR__ . '/css/widget-frontend.css')
+      );
     return;
   }
 
