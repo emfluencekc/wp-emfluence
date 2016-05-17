@@ -1,8 +1,8 @@
 === Plugin Name ===
 Tags: emfluence, email, marketing
 Requires at least: 3.0.1
-Tested up to: 4.5.1
-Stable tag: 1.1
+Tested up to: 4.5.2
+Stable tag: 2.0
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -36,9 +36,9 @@ https://github.com/emfluencekc/wp-emfluence
 
 == Changelog ==
 
-= 1.1 =
+= 2.0 =
 * Contacts are added to any groups selected by the admin. Private groups can be selected.
-* Support for more contact fields, including custom variables.
+* Support for more contact fields, including all custom variables.
 * Support for field types.
 * Revamp of widget settings UI.
 
