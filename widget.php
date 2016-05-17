@@ -20,32 +20,38 @@ class emfluence_email_signup extends WP_Widget {
   static function get_groups(){
     static $groups = NULL;
 
+    if( $groups !== NULL ) return $groups;
+
+    $cached = wp_cache_get('emfluence:groups');
+    if(!empty($cached)) $groups = $cached;
+
+    if( $groups !== NULL ) return $groups;
+
     $options = get_option('emfluence_global');
     $api = emfluence_get_api($options['api_key']);
-
-    if( $groups === NULL ){
-      $groups = array();
-      $more = TRUE;
-      $page_number = 1;
-      while($more){
-        $response = $api->groups_search(array(
-            'rpp' => 250,
-            'page' => $page_number,
-        ));
-        if( !$response || !$response->success ){
-          $more = FALSE;
-          break;
-        }
-        foreach( $response->data->records as $group ){
-          $groups[$group->groupID] = $group;
-        }
-        if( !$response->data->paging->nextUrl ){
-          $more = FALSE;
-        } else {
-          ++$page_number;
-        }
+    $groups = array();
+    $more = TRUE;
+    $page_number = 1;
+    while($more){
+      $response = $api->groups_search(array(
+          'rpp' => 250,
+          'page' => $page_number,
+          'type' => 'Static'
+      ));
+      if( !$response || !$response->success ){
+        $more = FALSE;
+        break;
+      }
+      foreach( $response->data->records as $group ){
+        $groups[$group->groupID] = $group;
+      }
+      if( !$response->data->paging->nextUrl ){
+        $more = FALSE;
+      } else {
+        ++$page_number;
       }
     }
+    wp_cache_set('emfluence:groups', $groups, '', 5*60);
     return $groups;
   }
 
@@ -87,40 +93,85 @@ class emfluence_email_signup extends WP_Widget {
     }
     return $pageURL;
   }
-  
-  function widget( $args, $instance ) {
-    extract( $args );
 
-    // Setup some defaults
+  /**
+   * Validate submitted values against widget settings.
+   * Return value is empty if validation passed.
+   * @param array $fields as saved in $instance
+   * @param array $values sanitized, trimmed submitted values
+   * @return string[]
+   */
+  protected function widget_validate($fields, $values) {
+    $defaults = $this->form_get_defaults();
     $messages = array();
-    $values = array(
-        'first_name' => '',
-        'last_name' => '',
-        'title' => '',
-        'company' => '',
-        'email' => '',
-    );
+    foreach( $fields as $key => $field ){
+      if( $field['required'] && ($field['type'] === 'true-false') && !isset($values[$key])) {
+        $messages[] = array( 'type' => 'error', 'value' => __( $field['required_message'] ) );
+      } elseif( $field['required'] && ($field['type'] !== 'true-false') && empty( $values[$key] ) ){
+        $messages[] = array( 'type' => 'error', 'value' => __( $field['required_message'] ) );
+      } elseif(empty($values[$key])) continue;
+      $field_name = isset($defaults['fields'][$key]) ? $defaults['fields'][$key]['name'] : str_replace(':', '', $field['label']);
+      switch($key) {
+        case 'email':
+          $field['type'] = 'email';
+          break;
+      }
+      switch($field['type']) {
+        case 'email':
+          if(!$this->validate_email( $values[$key] )) {
+            $messages[] = array( 'type' => 'error', 'value' => sprintf(__('%s: Invalid email address.'), $field_name) );
+          }
+        break;
+        case 'number':
+          if(!is_numeric($values[$key])) {
+            $messages[] = array( 'type' => 'error', 'value' => sprintf(__('%s: Must be numeric.'), $field_name) );
+          }
+          break;
+        case 'date':
+          $time = strtotime($values[$key]);
+          if(empty($time)) {
+            $messages[] = array( 'type' => 'error', 'value' => sprintf(__('%s: Must be a date.'), $field_name) );
+          }
+          break;
+      }
+    }
+    return $messages;
+  }
+
+  /**
+   * Wrap the widget's content and return the html to output.
+   * @param string $content
+   * @return string
+   */
+  protected function widget_wrap_content($args, $content, $instance) {
+
+    $title = apply_filters( 'Email Signup', empty( $instance[ 'title' ] ) ? __( 'Email Signup' ) : $instance[ 'title' ] );
+    if( $title ) $title = $args['before_title'] . '<span>' . $title . '</span>' . $args['after_title'];
+
+    $output = $args['before_widget'] . '<form class="mail-form" method="post"><div class="holder"><div class="frame">';
+    $output .= $title;
+    $output .= $content;
+    $output .= '</div></div></form>' . $args['after_widget'];
+
+    return $output;
+  }
+
+  function widget( $args, $instance ) {
+    /* TODO: Support more than one widget form per page.
+     * Currently this plugin works by rendering the form and submitting to the same page.
+     * It assumes that the form has been submitted by this instance of the widget.
+     * So multiple forms on the same page would try to all process the submission at the same time.
+     * We could probably resolve this by identifying the instance ID in the form.
+     */
+    $values = array();
 
     if( !empty( $instance[ 'groups' ] ) ) $lists = implode(',', $instance['groups'] );
-    $title = apply_filters( 'Email Signup', empty( $instance[ 'title' ] ) ? __( 'Email Signup' ) : $instance[ 'title' ] );
 
     // Ensure we can't sign people up without lists
     if( empty($lists) ){
-      $output = '';
-
-      /* Before widget (defined by themes). */
-      $output .= $before_widget . '<form class="mail-form" method="post"><div class="holder"><div class="frame">';
-
-      /* Title of widget (before and after defined by themes). */
-      if ( $title )
-        $output .= $before_title . '<span>' . $title . '</span>' . $after_title;
-
-      $output .= '<p>' . __('Please select lists visitors may sign up for.') . '</p>' . "\n";
+      $output = '<p>' . __('Please select lists visitors may sign up for.') . '</p>' . "\n";
       $output .= '<p>' . __('Powered by emfluence.') . '</p>' . "\n";
-
-      $output .= '</div></div></form>' . $after_widget;
-
-      print $output;
+      print $this->widget_wrap_content($args, $output, $instance);
       return;
     }
 
@@ -129,26 +180,17 @@ class emfluence_email_signup extends WP_Widget {
      */
 
     if( !empty($_POST) && $_POST['action'] == 'email_signup' ){
-      $output = '';
-      $valid = TRUE;
+      $defaults = $this->form_get_defaults();
+
       // Set the field values in case there's an error
       foreach( $_POST as $key => $value ){
         $values[$key] = htmlentities( trim( $value ) );
       }
 
-      foreach( $instance['fields'] as $key => $field ){
-        if( $field['required'] && empty( $values[$key] ) ){
-          $valid = FALSE;
-          $messages[] = array( 'type' => 'error', 'value' => __( $field['required_message'] ) );
-        } elseif ( $key == 'email' && !$this->validate_email( $values[$key] ) ){
-          $valid = FALSE;
-          $messages[] = array( 'type' => 'error', 'value' => __('Invalid email address.') );
-        }
-      }
+      $messages = $this->widget_validate($instance['fields'], $values);
+      array_filter($values);
 
-      if( $valid ){
-        $success = FALSE;
-        $messages = array();
+      if( empty($messages) ){
         // Try to subscribe them
         $options = get_option('emfluence_global');
         $api = emfluence_get_api($options['api_key']);
@@ -156,12 +198,14 @@ class emfluence_email_signup extends WP_Widget {
         $data = array();
         $data['groupIDs'] = !empty($_POST['groups'])? $_POST['groups'] : '';
         $data['originalSource'] = trim( $_POST['source'] );
-        $data['firstName'] = !empty( $_POST['first_name'] )? trim( $_POST['first_name'] ) : '';
-        $data['lastName'] = !empty( $_POST['last_name'] )? trim( $_POST['last_name'] ) : '';
-        $data['title'] = !empty( $_POST['title'] )? trim( $_POST['title'] ) : '';
-        $data['company'] = !empty( $_POST['company'] )? trim( $_POST['company'] ) : '';
-        // $data['phone'] = trim( $form_data['phone_number'] );
-        $data['email'] = trim( $_POST['email'] );
+
+        // basic contact fields
+        foreach($instance['fields'] as $key=>$field) {
+          if(empty($values[$key]) || empty($defaults['fields'][$key])) continue;
+          $platform_key = $defaults['fields'][$key]['platform'];
+          $data[$platform_key] = trim( $_POST[$key] );
+        }
+        // custom variables
         $data['customFields'] = array();
         for( $i = 1; $i <= 255; $i++ ){
           $field = 'custom' . $i;
@@ -170,60 +214,54 @@ class emfluence_email_signup extends WP_Widget {
             continue;
           }
           $data['customFields'][$field] = array(
-              'value' => trim( $_POST[$parameter] ),
+            'value' => trim( $_POST[$parameter] ),
           );
         }
         if(empty($data['customFields'])) unset($data['customFields']);
         $result = $api->contacts_save($data);
 
-        if( empty($result->success) ){
-          $messages[] = array('type' => 'error', 'value' => __('An error occurred contacting the email service.'));
+        if( empty($result) ) {
+          wp_mail(
+              get_bloginfo('admin_email'),
+              'Error sending contact form to emfluence Marketing Platform',
+              "Transmission error. \n\nSubmission data: \n" . wp_json_encode($data)
+          );
+          $messages[] = array('type' => 'error', 'value' => __('An error occurred submitting the form. We have been notified. Please try again later.'));
+        } elseif( empty($result->success) ){
+          foreach($result->errors as $err) {
+            $messages[] = array('type' => 'error', 'value' => __($err));
+          }
         } else {
-          /* Before widget (defined by themes). */
-          $output .= $before_widget . '<form class="mail-form" method="post"><div class="holder"><div class="frame">';
-
-          /* Title of widget (before and after defined by themes). */
-          if ( $title ){
-            $output .= $before_title . '<span>' . $title . '</span>' . $after_title;
-
+          // SUCCESS!
+          if(!empty($instance['success'])) $message = nl2br(wp_kses_post($instance['success']));
+          if(empty($message)) {
             ob_start();
             get_template_part('emfluence/success');
             $message = ob_get_clean();
-            if(empty($message)) $message = file_get_contents( 'theme/success.php', TRUE);
-            $output .= $message;
-
-            $output .= '</div></div></form>' . $after_widget;
-
-            print $output;
-            return;
           }
-        }
-      }
-    }
+          if(empty($message)) $message = file_get_contents( 'theme/success.php', TRUE);
+          print $this->widget_wrap_content($args, $message, $instance);
+          return;
+        } // result of attempted push to platform
+      } // passed initial validation
+    } // attempted submission
 
-    /* Before widget (defined by themes). */
-    $output .= $before_widget . '<form class="mail-form" method="post"><div class="holder"><div class="frame">';
-
-    /* Title of widget (before and after defined by themes). */
-    if ( $title ) {
-      $output .= $before_title . '<span>' . $title . '</span>' . $after_title;
-    }
+    $output = '';
 
     // Output all messages
     if( !empty($messages) ){
       $output .= '<ul class="messages">';
       foreach($messages as $message){
-        $output .= '<li class="message ' . $message['type'] . '">' . __($message['value']) . '</li>';
+        $output .= '<li class="message ' . $message['type'] . '">' . esc_html(__($message['value'])) . '</li>';
       }
       $output .= '</ul>';
     }
 
     if( !empty($instance['text']) ) {
-      $output .= '<div class="lead">' . wpautop($instance['text']) . '</div>';
+      $output .= '<div class="lead">' . wpautop(wp_kses_post($instance['text'])) . '</div>';
     }
 
     $current_page_url = remove_query_arg('sucess', $this->get_current_page_url());
-    $output .= '<form action="' . $current_page_url . '" method="POST">' . "\n";
     $output .= '<input type="hidden" name="action" value="email_signup" />' . "\n";
     $output .= '<input type="hidden" name="source" value="' . $current_page_url . '" />' . "\n";
     $output .= '<input type="hidden" name="groups" value="' . implode(',', $instance['groups']) . '" />' . "\n";
@@ -235,35 +273,60 @@ class emfluence_email_signup extends WP_Widget {
       return ($a['order'] < $b['order']) ? -1 : 1;
     });
     foreach( $instance['fields'] as $key => $field ){
-      if( $field['display'] ){
-        $label = __($field['label']);
-        $placeholder = __( str_replace(':', '', $field['label']) );
-        $required = $field['required']? 'required' : '';
-        switch( $field['type'] ){
-          case 'text':
-          default:
-            $output .= '<div class="field row field-' . $key . '">' . "\n";
-            $output .= '<label for="emfluence_' . $key . '">' . $label . '';
-            if( $field['required'] ){
-              $output .= '<span class="required">*</span>';
-            }
-            $input_type = ($field['field_name']=='email') ? 'email' : 'text';
-            $output .= '</label>' . "\n";
-            $output .=   '<input placeholder="' . $placeholder . '" type="' . $input_type . '" name="' . $field['field_name'] . '" id="emfluence_' . $key . '" value="' . $values[$field['field_name']] . '" ' . $required . ' />' . "\n";
-            $output .= '</div>' . "\n";
-            break;
-        }
+      if( !$field['display'] ) continue;
+      $label = __($field['label']);
+      $placeholder = __( str_replace(':', '', $field['label']) );
+      $required = $field['required']? 'required' : '';
+      $field['type'] = $this->restrict_to_types($field['type']);
+      switch( $field['type'] ){
+        case 'text':
+        case 'email':
+        case 'date':
+        case 'number':
+          $output .= '<div class="field row field-' . $key . '">' . "\n";
+          $output .= '<label for="emfluence_' . $key . '">' . esc_html($label) . '';
+          if( $field['required'] ){
+            $output .= '<span class="required">*</span>';
+          }
+          $output .= '</label>' . "\n";
+          $output .=   '<input placeholder="' . esc_attr($placeholder) . '" type="' . $field['type'] . '" name="' . $field['field_name'] . '" id="emfluence_' . $key . '" value="' . esc_attr($values[$field['field_name']]) . '" ' . $required . ' />' . "\n";
+          $output .= '</div>' . "\n";
+          break;
+        case 'textarea':
+          $output .= '<div class="field row field-' . $key . '">' . "\n";
+          $output .= '<label for="emfluence_' . $key . '">' . esc_html($label) . '';
+          if( $field['required'] ){
+            $output .= '<span class="required">*</span>';
+          }
+          $output .= '</label>' . "\n";
+          $output .=   '<textarea placeholder="' . esc_attr($placeholder) . '" name="' . $field['field_name'] . '" id="emfluence_' . $key . '" ' . $required . '>' . esc_html($values[$field['field_name']]) . '</textarea>' . "\n";
+          $output .= '</div>' . "\n";
+          break;
+        case 'true-false':
+          $has_value = isset($values[$field['field_name']]);
+          $yes_checked = ($has_value && $values[$field['field_name']]) ? 'checked="checked"' : '';
+          $no_checked = ($has_value && !$values[$field['field_name']]) ? 'checked="checked"' : '';
+          $required = $field['required'] ? '<span class="required">*</span>' : '';
+          $output .= '
+          <div class="field row field-' . $key . '">
+            <label for="emfluence_' . $key . '">' . esc_html($label) . $required . '</label>
+            <div class="radio"><input type="radio" name="' . $field['field_name'] . '" value="1" ' . $yes_checked . '>' . __('Yes') . '</div>
+            <div class="radio"><input type="radio" name="' . $field['field_name'] . '" value="0" ' . $no_checked . '>' . __('No') . '</div>
+          </div>' . "\n";
+          break;
+          break;
       }
     }
 
-    $output .= '<div class="row actions"><input type="submit" class="submit" value="' . htmlentities( $instance['submit'], ENT_QUOTES ) . '" /></div>' . "\n";
-    $output .= '</form>' . "\n";
+    $output .= '<div class="row actions"><input type="submit" class="submit" value="' . esc_html($instance['submit']) . '" /></div>' . "\n";
 
-    /* After widget (defined by themes). */
-    $output .= '</div></div></form>' . $after_widget;
-
-    echo $output;
-
+    echo $this->widget_wrap_content($args, $output, $instance);
+    if(apply_filters('wp-emfluence-use-default-styles', TRUE)) wp_enqueue_style(
+        'wp-emfluence',
+        plugins_url( '/css/widget-frontend.css', __FILE__ ),
+        array(),
+        filemtime(__DIR__ . '/css/widget-frontend.css')
+      );
     return;
   }
 
@@ -273,29 +336,116 @@ class emfluence_email_signup extends WP_Widget {
    * @return string
    */
   protected function form_template_groups($instance, $groups) {
-    $output = '';
-    $output .= '<div class="groups">';
-    $output .= '<h3>' . __('Groups') . '</h3>' . "\n";
-    $output .= '  <div class="filter">' . "\n";
-    $output .= '    <p>' . __('Search for any group by name to add them to the list of options for users.') . '</p>' . "\n";
-    $output .= '    <p>';
-    $output .= '      <input list="emfluence-emailer-groups-list"/>' . "\n";
-    $output .= '      <button type="button" onclick="emfluenceEmailerWidget.groups.add(this)">' . __('Add') . '</button>';
-    $output .= '    </p>';
-    $output .= '  </div>';
-    $output .= '  <div class="selected">' . "\n";
-    if( !empty($instance['groups']) ) {
-      foreach ($instance['groups'] as $groupID) {
-        $group = $groups[$groupID];
-        $id = 'groups-' . $this->number . '-' . $groupID;
-        $output .=
-            '<div><label for="' . $id . '">
-            <input id="' . $id . '" type="checkbox" value="' . $groupID . '" name="groups[]" checked /> ' . $group->groupName . '
-          </label></div>';
-      }
+    $output = '
+      <h3>' . __('Groups') . '</h3>
+      <div class="groups">
+        <div class="filter">
+          <p>' . __('Search for any group by name. Contacts will be added to all groups that you select.') . '</p>
+          <p>
+            <input list="emfluence-emailer-groups-list"/>
+            <button type="button" onclick="emfluenceEmailerWidget.groups.add(this)">' . __('Add') . '</button>
+          </p>
+        </div>
+        <div class="selected">' . "\n";
+        if( !empty($instance['groups']) ) {
+          foreach ($instance['groups'] as $groupID) {
+            $group = $groups[$groupID];
+            $id = 'groups-' . $this->number . '-' . $groupID;
+            $output .= '
+              <div>
+                <label for="' . $id . '">
+                  <input id="' . $id . '" type="checkbox" value="' . $groupID . '" name="groups[]" checked /> ' . $group->groupName . '
+                </label>
+              </div>';
+          }
+        }
+    $output .= '
+        </div>
+      </div>';
+    return $output;
+  }
+
+  /**
+   * @param array $instance
+   * @return string
+   */
+  protected function form_template_text_display($instance) {
+    $output = '
+      <h3>' . __('Text Display') . '</h3>
+      <div class="text_display">
+        <p>
+          <label for="' . $this->get_field_id( 'title' ) . '">' . __('Title') . ':</label>
+          <input type="text" id="' . $this->get_field_id( 'title' ) . '" name="' . $this->get_field_name( 'title' ) . '" value="' . $instance['title'] . '" style="width:100%;" />
+        </p>
+        <p>
+          <label for="' . $this->get_field_id( 'text' ) . '">' . __('Text') . ':</label>
+          <textarea id="' . $this->get_field_id( 'text' ) . '" name="' . $this->get_field_name( 'text' ) . '" style="width:100%;" >' . $instance['text'] . '</textarea>
+        </p>
+        <p>
+          <label for="' . $this->get_field_id( 'submit' ) . '">' . __('Submit button') . ':</label>
+          <input type="text" id="' . $this->get_field_id( 'submit' ) . '" name="' . $this->get_field_name( 'submit' ) . '" value="' . $instance['submit'] . '" style="width:100%;" />
+        </p>
+        <p>
+          <label for="' . $this->get_field_id( 'success' ) . '">' . __('Success message') . ':</label>
+          <textarea id="' . $this->get_field_id( 'success' ) . '" name="' . $this->get_field_name( 'success' ) . '" style="width:100%;" >' . $instance['success'] . '</textarea>
+          NOTE: If you set the success message here, any theme template file emfluence/success.php will be ignored.
+        </p>
+      </div>' . "\n";
+    return $output;
+  }
+
+  /**
+   * @param array $fields
+   * @return string
+   */
+  protected function form_template_basic_fields_adder($fields) {
+    $output = '
+        <div class="basic-fields-adder">
+          <p>' . __('Contact field') . '
+            <select>';
+    foreach($fields as $key=>$field) {
+      $output .= '<option value="' . $key . '" data-settings="' . esc_attr(json_encode($field)) . '">' . $field['name'] . '</option>';
     }
-    $output .= '  </div>';
-    $output .= '</div>';
+    $output .= '
+            </select>
+            <button type="button" onclick="emfluenceEmailerWidget.fields.add(this)">' . __('Add') . '</button>
+          </p>
+        </div>';
+    return $output;
+  }
+
+  /**
+   * @param array $defaults
+   * @param array $instance
+   * @return string
+   */
+  protected function form_template_basic_fields($defaults, $instance) {
+    $output = '
+        <h3>' . __('General Contact Fields') . '</h3>
+        <div class="basic_contact_fields">
+            ';
+    $output .= $this->form_template_basic_fields_adder($defaults['fields']);
+    foreach( $defaults['fields'] as $key => $field ) {
+      if(empty($instance['fields'][$key]['display'])) continue;
+      $output .= $this->form_template_field($defaults['fields'][$key]['name'], $key, $instance['fields'][$key]);
+    }
+    $output .= '
+            <div class="basic_contact_field_template" style="display: none;">
+            ' . $this->form_template_field(
+            'CONTACT_FIELD_NAME',
+            'CONTACT_FIELD_KEY',
+            array(
+                'name' => 'CONTACT_FIELD_NAME',
+                'display' => 1,
+                'required' => 0,
+                'required_message' => 'CONTACT_FIELD_REQUIRED_MESSAGE',
+                'label' => 'CONTACT_FIELD_LABEL',
+                'order' => 'CONTACT_FIELD_ORDER',
+                'type' => 'text'
+            )) . '
+          </div>
+        </div>
+      ';
     return $output;
   }
 
@@ -314,6 +464,42 @@ class emfluence_email_signup extends WP_Widget {
   }
 
   /**
+   * @param array $defaults
+   * @param array $instance
+   * @return string
+   */
+  protected function form_template_custom_variables($defaults, $instance) {
+    $output = '
+        <h3>' . __('Custom Variables') . '</h3>
+        <div class="custom_variables">
+            ' . $this->form_template_custom_variables_adder();
+    foreach( $instance['fields'] as $key => $field ) {
+      if(isset($defaults['fields'][$key])) continue; // so we're only dealing with custom fields
+      if(empty($instance['fields'][$key]['display'])) continue;
+      $variable_number = intval(str_replace('custom_', '', $key));
+      $name = sprintf(__('Variable %d'), $variable_number);
+      $output .= $this->form_template_field($name, $key, $instance['fields'][$key]);
+    }
+    $output .= '
+          <div class="custom_variable_template" style="display: none;">
+            ' . $this->form_template_field(
+            'Variable CUSTOM_VARIABLE_NUMBER',
+            'custom_CUSTOM_VARIABLE_NUMBER',
+            array(
+                'name' => 'Variable CUSTOM_VARIABLE_NUMBER',
+                'display' => 1,
+                'required' => 0,
+                'required_message' => 'Custom CUSTOM_VARIABLE_NUMBER is required.',
+                'label' => 'Custom CUSTOM_VARIABLE_NUMBER:',
+                'order' => 6,
+            )) . '
+          </div>
+        </div>
+      ';
+    return $output;
+  }
+
+  /**
    * @param string $name Like 'First Name'
    * @param string $key Like 'first_name'
    * @param array $field Field definition. Like
@@ -328,17 +514,19 @@ class emfluence_email_signup extends WP_Widget {
    * @return string
    */
   protected function form_template_field($name, $key, $field) {
+    $available_types = $this->form_get_allowed_types();
+
     $display_input = array(
         'id' => $this->get_field_id( $key . '_display' ),
         'name' => $this->get_field_name(  $key . '_display' ),
         'checked' => $field['display'] == 1? 'checked="checked"' : '',
-        'disabled' => $key == 'email'? 'disabled="disabled"' : '',
+        'disabled' => '',
     );
     $required_input = array(
         'id' => $this->get_field_id( $key . '_required' ),
         'name' => $this->get_field_name(  $key . '_required' ),
         'checked' => $field['required'] == 1? 'checked="checked"' : '',
-        'disabled' => $key == 'email'? 'disabled="disabled"' : '',
+        'disabled' => '',
     );
     $required_message_input = array(
         'id' => $this->get_field_id( $key . '_required_message' ),
@@ -355,33 +543,217 @@ class emfluence_email_signup extends WP_Widget {
         'name' => $this->get_field_name(  $key . '_order' ),
         'value' => $field['order'],
     );
+    $type_input = array(
+        'id' => $this->get_field_id( $key . '_type' ),
+        'name' => $this->get_field_name(  $key . '_type' ),
+        'value' => empty($field['type']) ? 'text' : $this->restrict_to_types($field['type']),
+        'options' => array(),
+        'disabled' => '',
+    );
+
+    if($key == 'email') {
+      $display_input['disabled'] = 'disabled="disabled"';
+      $required_input['disabled'] = 'disabled="disabled"';
+      $type_input['disabled'] = 'disabled="disabled"';
+      $type_input['value'] = 'email';
+    }
+
+    foreach($available_types as $type) {
+      $selected = ($type == $type_input['value'] ? 'selected="selected"' : '');
+      $type_input['options'][] = '<option ' . $selected . '>' . $type . '</option>';
+    }
 
     $output = '
-        <h3 data-variable-key="' . $key . '">' . __($name) . '</h3>
-        <p>
-          <label for="' . $display_input['id'] . '">
-            <input type="checkbox" id="' . $display_input['id'] . '" name="' . $display_input['name'] . '" value="1" ' . $display_input['checked'] . ' ' . $display_input['disabled'] . ' />
-            ' . __('Display') . '
-          </label>
-          <label for="' . $required_input['id'] . '">
-            <input type="checkbox" id="' . $required_input['id'] . '" name="' . $required_input['name'] . '" value="1" ' . $required_input['checked'] . ' ' . $display_input['disabled'] . ' />
-            ' . __('Required') . '
-          </label>
-        </p>
-        <p>
-          <label for="' . $required_message_input['id'] . '">' . __('Required Message') . '</label>
-          <input type="text" id="' . $required_message_input['id'] . '" name="' . $required_message_input['name'] . '" value="' . $required_message_input['value'] . '" style="width:100%;" />
-        </p>
-        <p>
-          <label for="' . $label_input['id'] . '">' . __('Label') . '</label>
-          <input type="text" id="' . $label_input['id'] . '" name="' . $label_input['name'] . '" value="' . $label_input['value'] . '" style="width:100%;" />
-        </p>
-        <p>
-          <label for="' . $order_input['id'] . '">' . __('Order') . '</label>
-          <input type="text" id="' . $order_input['id'] . '" name="' . $order_input['name'] . '" value="' . $order_input['value'] . '" style="width:100%;" />
-        </p>
+        <div class="contact-field" data-variable-key="' . $key . '">
+          <p class="heading">
+            <label class="heading" for="' . $display_input['id'] . '">
+              <input type="checkbox" id="' . $display_input['id'] . '" name="' . $display_input['name'] . '" value="1" ' . $display_input['checked'] . ' ' . $display_input['disabled'] . ' />
+              ' . __($name) . '
+            </label>
+            <label for="' . $required_input['id'] . '">
+              <input type="checkbox" id="' . $required_input['id'] . '" name="' . $required_input['name'] . '" value="1" ' . $required_input['checked'] . ' ' . $display_input['disabled'] . ' />
+              ' . __('Required') . '
+            </label>
+            <label for="' . $order_input['id'] . '">
+              <input type="text" id="' . $order_input['id'] . '" name="' . $order_input['name'] . '" value="' . $order_input['value'] . '" class="order" size="2" />
+              ' . __('Order') . '
+            </label>
+          </p>
+          <p>
+            <label for="' . $required_message_input['id'] . '">' . __('Required Message') . '</label>
+            <input type="text" id="' . $required_message_input['id'] . '" name="' . $required_message_input['name'] . '" value="' . $required_message_input['value'] . '" style="width:100%;" />
+          </p>
+          <p>
+            <label for="' . $label_input['id'] . '">' . __('Label') . '</label>
+            <input type="text" id="' . $label_input['id'] . '" name="' . $label_input['name'] . '" value="' . $label_input['value'] . '" style="width:100%;" />
+          </p>
+          <p>
+            <label for="' . $type_input['id'] . '">' . __('Type') . '</label>
+            <select id="' . $type_input['id'] . '" name="' . $type_input['name'] . '" ' . $type_input['disabled'] . '>
+              ' . implode('', $type_input['options']) .'
+            </select>
+          </p>
+        </div>
         ';
     return $output;
+  }
+
+  /**
+   * Get a list of allowed field types
+   * @return string[]
+   */
+  protected function form_get_allowed_types() {
+    return array(
+        'text', 'textarea', 'email', 'date', 'number', 'true-false'
+    );
+  }
+
+  /**
+   * Restrict a field type to the allowed types
+   * @param string $type
+   * @return string
+   */
+  protected function restrict_to_types($type) {
+    $allowed = $this->form_get_allowed_types();
+    return (array_search($type, $allowed) === FALSE ? 'text' : $type);
+  }
+
+  /**
+   * @return array
+   */
+  protected function form_get_defaults() {
+    $defaults = array(
+        'title' => __('Email Signup'),
+        'text' => '',
+        'groups' => array(),
+        'custom_fields' => array(),
+        'submit' => __('Signup'),
+        'fields' => array(),
+    );
+
+    $contact_field_defaults = array(
+        'first_name' => array(
+            'name' => __('First Name'),
+            'required_message' => __('First name is required.'),
+            'label' => __('First Name:'),
+            'type' => 'text',
+            'platform' => 'firstName'
+        ),
+        'last_name' => array(
+            'name' => __('Last Name'),
+            'required_message' => __('Last name is required.'),
+            'label' => __('Last Name:'),
+            'type' => 'text',
+            'platform' => 'lastName'
+        ),
+        'title' => array(
+            'name' => __('Title'),
+            'required_message' => __('Title is required.'),
+            'label' => __('Title:'),
+            'type' => 'text',
+            'platform' => 'title'
+        ),
+        'company' => array(
+            'name' => __('Company'),
+            'required_message' => __('Company is required.'),
+            'label' => __('Company:'),
+            'type' => 'text',
+            'platform' => 'company'
+        ),
+        'email' => array(
+            'name' => 'Email',
+            'display' => 1,
+            'required' => 1,
+            'required_message' => 'Email address is required.',
+            'label' => 'Email:',
+            'type' => 'email',
+            'platform' => 'email'
+        ),
+        'address1' => array(
+            'name' => 'Address 1',
+            'required_message' => 'Address 1 is required.',
+            'label' => 'Address 1:',
+            'type' => 'text',
+            'platform' => 'address1'
+        ),
+        'address2' => array(
+            'name' => 'Address 2',
+            'required_message' => 'Address 2 is required.',
+            'label' => 'Address 2:',
+            'type' => 'text',
+            'platform' => 'address2'
+        ),
+        'city' => array(
+            'name' => 'City',
+            'required_message' => 'City is required.',
+            'label' => 'City:',
+            'type' => 'text',
+            'platform' => 'city'
+        ),
+        'state' => array(
+            'name' => 'State',
+            'required_message' => 'State is required.',
+            'label' => 'State:',
+            'type' => 'text'
+        ),
+        'zipCode' => array(
+            'name' => 'Zip Code',
+            'required_message' => 'Zip Code is required.',
+            'label' => 'Zip Code:',
+            'type' => 'text',
+            'platform' => 'zipCode'
+        ),
+        'country' => array(
+            'name' => 'Country',
+            'required_message' => 'Country is required.',
+            'label' => 'Country:',
+            'type' => 'text',
+            'platform' => 'country'
+        ),
+        'phone' => array(
+            'name' => 'Phone',
+            'required_message' => 'Phone is required.',
+            'label' => 'Phone:',
+            'type' => 'text',
+            'platform' => 'phone'
+        ),
+        'fax' => array(
+            'name' => 'Fax',
+            'required_message' => 'Fax is required.',
+            'label' => 'Fax:',
+            'type' => 'text',
+            'platform' => 'fax'
+        ),
+        'dateofbirth' => array(
+            'name' => 'Date of birth',
+            'required_message' => 'Date of birth is required.',
+            'label' => 'Date of birth:',
+            'type' => 'date',
+            'platform' => 'dateofbirth'
+        ),
+        'notes' => array(
+            'name' => 'Notes',
+            'required_message' => 'Notes is required.',
+            'label' => 'Notes:',
+            'type' => 'text',
+            'platform' => 'notes'
+        ),
+        'memo' => array(
+            'name' => 'Memo',
+            'required_message' => 'Memo is required.',
+            'label' => 'Memo:',
+            'type' => 'textarea',
+            'platform' => 'memo'
+        )
+    );
+
+    foreach($contact_field_defaults as $name=>$field) {
+      if(empty($field['display'])) $field['display'] = 0;
+      if(empty($field['required'])) $field['required'] = 0;
+      if(empty($field['order'])) $field['order'] = 1;
+      $defaults['fields'][$name] = $field;
+    }
+    return $defaults;
   }
 
   public function form( $instance ) {
@@ -395,127 +767,25 @@ class emfluence_email_signup extends WP_Widget {
       return;
     }
 
-    // Pull back the groups
+    $defaults = $this->form_get_defaults();
+    $instance = wp_parse_args( (array) $instance, $defaults );
     $groups = emfluence_email_signup::get_groups();
 
-    /* Set up some default widget settings. */
-    $defaults = array(
-        'title' => __('Email Signup'),
-        'text' => '',
-        'groups' => array(),
-        'custom_fields' => array(),
-        'submit' => __('Signup'),
-        'fields' => array(
-            'first_name' => array(
-                'name' => __('First Name'),
-                'display' => 1,
-                'required' => 1,
-                'required_message' => __('First name is required.'),
-                'label' => __('First Name:'),
-                'order' => 1,
-            ),
-            'last_name' => array(
-                'name' => __('Last Name'),
-                'display' => 1,
-                'required' => 1,
-                'required_message' => __('Last name is required.'),
-                'label' => __('Last Name:'),
-                'order' => 2,
-            ),
-            'title' => array(
-                'name' => __('Title'),
-                'display' => 0,
-                'required' => 0,
-                'required_message' => __('Title is required.'),
-                'label' => __('Title:'),
-                'order' => 3,
-            ),
-            'company' => array(
-                'name' => __('Company'),
-                'display' => 0,
-                'required' => 0,
-                'required_message' => __('Company is required.'),
-                'label' => __('Company:'),
-                'order' => 4,
-            ),
-            'email' => array(
-                'name' => 'Email',
-                'display' => 1,
-                'required' => 1,
-                'required_message' => 'Email address is required.',
-                'label' => 'Email:',
-                'order' => 5,
-            ),
-        ),
-    );
-
-    $instance = wp_parse_args( (array) $instance, $defaults );
-
-    $output = '';
-    $output .= '<h3>' . __('Text Display') . '</h3>' . "\n";
-    $output .= '<p>' . "\n";
-    $output .=  '<label for="' . $this->get_field_id( 'title' ) . '">' . __('Title') . ':</label>' . "\n";
-    $output .=  '<input type="text" id="' . $this->get_field_id( 'title' ) . '" name="' . $this->get_field_name( 'title' ) . '" value="' . $instance['title'] . '" style="width:100%;" />' . "\n";
-    $output .= '</p>' . "\n";
-    $output .= '<p>' . "\n";
-    $output .=  '<label for="' . $this->get_field_id( 'text' ) . '">' . __('Text') . ':</label>' . "\n";
-    $output .=  '<textarea id="' . $this->get_field_id( 'text' ) . '" name="' . $this->get_field_name( 'text' ) . '" style="width:100%;" >' . $instance['text'] . '</textarea>' . "\n";
-    $output .= '</p>' . "\n";
-    $output .= '<p>' . "\n";
-    $output .=  '<label for="' . $this->get_field_id( 'submit' ) . '">' . __('Submit button') . ':</label>' . "\n";
-    $output .=  '<input type="text" id="' . $this->get_field_id( 'submit' ) . '" name="' . $this->get_field_name( 'submit' ) . '" value="' . $instance['submit'] . '" style="width:100%;" />' . "\n";
-    $output .= '</p>' . "\n";
-
+    $output = $this->form_template_text_display($instance);
     $output .= $this->form_template_groups($instance, $groups);
-
-    $output .= '<h3>' . __('Fields') . '</h3>' . "\n";
-    foreach( $defaults['fields'] as $key => $field ){
-      $output .= $this->form_template_field($defaults['fields'][$key]['name'], $key, $instance['fields'][$key]);
-    }
-
-    $output .= '
-        <div class="custom_variables">
-            <h3>' . __('Custom Variables') . '</h3>
-            ' . $this->form_template_custom_variables_adder();
-    foreach( $instance['fields'] as $key => $field ) {
-      if(isset($defaults['fields'][$key])) continue;
-      if(empty($instance['fields'][$key]['display'])) continue;
-      $variable_number = intval(str_replace('custom_', '', $key));
-      $name = sprintf(__('Custom Variable %d'), $variable_number);
-      $output .= $this->form_template_field($name, $key, $instance['fields'][$key]);
-    }
-    $output .= '
-        </div>
-        <div class="custom_variable_template" style="display: none;">
-          ' . $this->form_template_field(
-            'Custom Variable CUSTOM_VARIABLE_NUMBER',
-            'custom_CUSTOM_VARIABLE_NUMBER',
-            array(
-                'name' => 'Custom Variable CUSTOM_VARIABLE_NUMBER',
-                'display' => 1,
-                'required' => 0,
-                'required_message' => 'Custom CUSTOM_VARIABLE_NUMBER is required.',
-                'label' => 'Custom CUSTOM_VARIABLE_NUMBER:',
-                'order' => 6,
-            )) . '
-        </div>
-      ';
+    $output .= $this->form_template_basic_fields($defaults, $instance);
+    $output .= $this->form_template_custom_variables($defaults, $instance);
 
     // Output the datalist for groups just once
     if( intval($this->number) == 0  ) {
-      $output .= '<datalist id="emfluence-emailer-groups-list">';
+      $output .= '<datalist id="emfluence-emailer-groups-list" style="display: none;">';
       foreach ($groups as $group) {
         $output .= '<option>' . $group->groupName . ' [' . $group->groupID . ']' . '</option>';
       }
       $output .= '</datalist>';
     }
 
-    // TODO Current problems:
-    // 1. When creating a new instance, no new form is passed through here. (JS has to be super generic)
-    // 2. The datalist we're creating works well, but generating checkboxes 'on input' isn't ready.
-    // 3. We need to load the current groups of the instance in as checkboxes during form generation
-
-    print $output;
+    print '<div class="wp-emfluence">' . $output . '</div>';
   }
 
   /**
@@ -525,46 +795,31 @@ class emfluence_email_signup extends WP_Widget {
     $instance = $new_instance;
 
     $instance['fields'] = array();
-    $instance['fields']['first_name'] = array(
-        'field_name' => 'first_name',
-        'display' => $new_instance['first_name_display'] == 1? 1 : 0,
-        'required' => $new_instance['first_name_required'] == 1? 1  : 0,
-        'required_message' => !empty($new_instance['first_name_required_message'])? stripslashes(trim($new_instance['first_name_required_message'])) : 'First name is required.',
-        'label' => !empty($new_instance['first_name_label'])? stripslashes(trim($new_instance['first_name_label'])) : __('First Name:'),
-        'order' => is_numeric($new_instance['first_name_order'])? $new_instance['first_name_order'] : 1,
-    );
-    $instance['fields']['last_name'] = array(
-        'field_name' => 'last_name',
-        'display' => $new_instance['last_name_display'] == 1? 1 : 0,
-        'required' => $new_instance['last_name_required'] == 1? 1  : 0,
-        'required_message' => !empty($new_instance['last_name_required_message'])? stripslashes(trim($new_instance['last_name_required_message'])) : 'Last name is required.',
-        'label' => !empty($new_instance['last_name_label'])? stripslashes(trim($new_instance['last_name_label'])) : __('Last Name:'),
-        'order' => is_numeric($new_instance['last_name_order'])? $new_instance['last_name_order'] : 2,
-    );
-    $instance['fields']['title'] = array(
-        'field_name' => 'title',
-        'display' => $new_instance['title_display'] == 1? 1 : 0,
-        'required' => $new_instance['title_required'] == 1? 1  : 0,
-        'required_message' => !empty($new_instance['title_required_message'])? stripslashes(trim($new_instance['title_required_message'])) : 'Title is required.',
-        'label' => !empty($new_instance['title_label'])? stripslashes(trim($new_instance['title_label'])) : __('Title:'),
-        'order' => is_numeric($new_instance['title_order'])? $new_instance['title_order'] : 3,
-    );
-    $instance['fields']['company'] = array(
-        'field_name' => 'company',
-        'display' => $new_instance['company_display'] == 1? 1 : 0,
-        'required' => $new_instance['company_required'] == 1? 1  : 0,
-        'required_message' => !empty($new_instance['company_required_message'])? stripslashes(trim($new_instance['company_required_message'])) : 'Company is required.',
-        'label' => !empty($new_instance['company_label'])? stripslashes(trim($new_instance['company_label'])) : __('Company:'),
-        'order' => is_numeric($new_instance['company_order'])? $new_instance['company_order'] : 4,
-    );
-    $instance['fields']['email'] = array(
-        'field_name' => 'email',
-        'display' => $new_instance['email_display'] = 1, // This cannot be optional
-        'required' => $new_instance['email_required'] = 1, // This cannot be optional
-        'required_message' => !empty($new_instance['email_required_message'])? stripslashes(trim($new_instance['email_required_message'])) : 'Email address is required.',
-        'label' => !empty($new_instance['email_label'])? stripslashes(trim($new_instance['email_label'])) : __('Email:'),
-        'order' => is_numeric($new_instance['email_order'])? $new_instance['email_order'] : 5,
-    );
+
+    // Force certain settings for email field
+    $instance['email_display'] = $instance['email_required'] = '1';
+    $instance['email_type'] = 'email';
+
+    // Basic contact fields
+    $defaults = $this->form_get_defaults();
+    foreach($defaults['fields'] as $field_key=>$default_field) {
+      if(empty($instance[$field_key . '_display'])) continue;
+      $instance['fields'][$field_key] = array(
+          'field_name' => $field_key,
+          'display' => 1,
+          'required' => $instance[$field_key . '_required'] == 1 ? 1  : 0,
+          'required_message' => !empty($instance[$field_key . '_required_message'])? stripslashes(trim($instance[$field_key . '_required_message'])) : $field_key . ' address is required.',
+          'label' => !empty($instance[$field_key . '_label'])? stripslashes(trim($instance[$field_key . '_label'])) : $default_field['label'],
+          'order' => is_numeric($instance[$field_key . '_order'])? $instance[$field_key . '_order'] : 5,
+          'type' => empty($instance[$field_key . '_type']) ? 'text' : $this->restrict_to_types($instance[$field_key . '_type'])
+      );
+    }
+    // Unset template fields.
+    $template_prefix = 'CONTACT_FIELD_KEY';
+    foreach($instance as $field_key=>$field_val) {
+      if(strpos($field_key, $template_prefix) !== 0) continue;
+      unset($instance[$field_key]);
+    }
 
     // Custom variables
     foreach($new_instance as $field_key=>$field_val) {
@@ -595,6 +850,7 @@ class emfluence_email_signup extends WP_Widget {
           'required_message' => !empty($new_instance[$key_prefix . '_required_message'])? stripslashes(trim($new_instance[$key_prefix . '_required_message'])) : 'Custom ' . $variable_number . ' is required.',
           'label' => !empty($new_instance[$key_prefix . '_label'])? stripslashes(trim($new_instance[$key_prefix . '_label'])) : 'Custom ' . $variable_number . ':',
           'order' => is_numeric($new_instance[$key_prefix . '_order'])? $new_instance[$key_prefix . '_order'] : 6,
+          'type' => empty($instance[$key_prefix . '_type']) ? 'text' : $this->restrict_to_types($instance[$key_prefix . '_type'])
         );
     }
 
@@ -605,11 +861,14 @@ class emfluence_email_signup extends WP_Widget {
     $instance['title'] = stripslashes($new_instance['title']);
     $instance['text'] = stripslashes($new_instance['text']);
     $instance['submit'] = stripslashes($new_instance['submit']);
+    $instance['success'] = stripslashes($new_instance['success']);
 
     // If the current user isn't allowed to use unfiltered HTML, filter it
     if ( !current_user_can('unfiltered_html') ) {
       $instance['title'] = strip_tags($new_instance['title']);
       $instance['text'] = strip_tags($new_instance['text']);
+      $instance['submit'] = strip_tags($new_instance['submit']);
+      $instance['success'] = strip_tags($new_instance['success']);
       foreach($instance['fields'] as &$field){
         $field['label'] = strip_tags($field['label']);
         $field['required_message'] = strip_tags($field['required_message']);

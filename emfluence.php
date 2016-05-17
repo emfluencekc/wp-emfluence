@@ -1,10 +1,10 @@
 <?php
 /*
 Plugin Name: emfluence Marketing Platform
-Plugin URI:
-Description: Plugin for creating an email signup form for visitors
+Plugin URI: https://github.com/emfluencekc/wp-emfluence
+Description: Easily add forms to your website for contacts to add or update their details in your emfluence Marketing Platform account.
 Author: emfluence Digital Marketing
-Version: 1.0
+Version: 2.0
 Author URI: https://www.emfluence.com
 */
 

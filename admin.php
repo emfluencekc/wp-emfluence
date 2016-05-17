@@ -11,7 +11,7 @@ add_filter("plugin_action_links_$plugin", 'emfluence_emailer_settings_link' );
 
 // Register the settings page
 function emfluence_emailer_admin_menu() {
-  add_options_page('Emfluence Marketing Platform Global Settings', 'Emfluence Marketing Platform', 'manage_options', 'emfluence_emailer', '_emfluence_emailer_options_page');
+  add_options_page('emfluence Marketing Platform Global Settings', 'emfluence Marketing Platform', 'manage_options', 'emfluence_emailer', '_emfluence_emailer_options_page');
 }
 add_action('admin_menu', 'emfluence_emailer_admin_menu');
 
@@ -40,11 +40,18 @@ function emfluence_emailer_admin_enqueue_scripts($hook) {
   if( !in_array($hook, array('widgets.php', 'customize.php')) ) {
     return;
   }
+  
+  wp_enqueue_style(
+      'emfluence-widget',
+      plugins_url( '/css/widget-settings.css', __FILE__ ),
+      array(),
+      filemtime(__DIR__ . '/css/widget-settings.css')
+    );
 
   wp_enqueue_script(
       'emfluence-emailer-widget'
       ,plugins_url( '/js/widget-settings.min.js', __FILE__ )
-      ,array('jquery')
+      ,array('jquery', 'jquery-ui-accordion', 'jquery-ui-datepicker')
   );
 
   // in JavaScript, object properties are accessed as ajax_object.ajax_url, ajax_object.we_value
