@@ -143,16 +143,15 @@ class emfluence_email_signup extends WP_Widget {
    * @param string $content
    * @return string
    */
-  protected function widget_wrap_content($args, $content) {
-    extract( $args );
+  protected function widget_wrap_content($args, $content, $instance) {
 
     $title = apply_filters( 'Email Signup', empty( $instance[ 'title' ] ) ? __( 'Email Signup' ) : $instance[ 'title' ] );
-    if( $title ) $title = $before_title . '<span>' . $title . '</span>' . $after_title;
+    if( $title ) $title = $args['before_title'] . '<span>' . $title . '</span>' . $args['after_title'];
 
-    $output = $before_widget . '<form class="mail-form" method="post"><div class="holder"><div class="frame">';
+    $output = $args['before_widget'] . '<form class="mail-form" method="post"><div class="holder"><div class="frame">';
     $output .= $title;
     $output .= $content;
-    $output .= '</div></div></form>' . $after_widget;
+    $output .= '</div></div></form>' . $args['after_widget'];
 
     return $output;
   }
@@ -172,7 +171,7 @@ class emfluence_email_signup extends WP_Widget {
     if( empty($lists) ){
       $output = '<p>' . __('Please select lists visitors may sign up for.') . '</p>' . "\n";
       $output .= '<p>' . __('Powered by emfluence.') . '</p>' . "\n";
-      print $this->widget_wrap_content($args, $output);
+      print $this->widget_wrap_content($args, $output, $instance);
       return;
     }
 
@@ -241,7 +240,7 @@ class emfluence_email_signup extends WP_Widget {
             $message = ob_get_clean();
           }
           if(empty($message)) $message = file_get_contents( 'theme/success.php', TRUE);
-          print $this->widget_wrap_content($args, $message);
+          print $this->widget_wrap_content($args, $message, $instance);
           return;
         } // result of attempted push to platform
       } // passed initial validation
@@ -321,7 +320,7 @@ class emfluence_email_signup extends WP_Widget {
 
     $output .= '<div class="row actions"><input type="submit" class="submit" value="' . esc_html($instance['submit']) . '" /></div>' . "\n";
 
-    echo $this->widget_wrap_content($args, $output);
+    echo $this->widget_wrap_content($args, $output, $instance);
     if(apply_filters('wp-emfluence-use-default-styles', TRUE)) wp_enqueue_style(
         'wp-emfluence',
         plugins_url( '/css/widget-frontend.css', __FILE__ ),
