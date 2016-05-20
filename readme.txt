@@ -34,6 +34,21 @@ https://github.com/emfluencekc/wp-emfluence
 4. Add widget forms via the Appearance->widgets screen. Each widget has settings for display, groups and contact fields.
 
 
+== Screenshots ==
+
+1. Widget edit screen. Enter your widget title and description, customize your Submit Button text,
+and add your own success message (which will appear after the information is submitted).
+2. Widget edit screen. Choose what groups your new contacts should be added to. The group names
+can be found in your Platform Account.
+3. Widget edit screen. Choose from the standard set of fields (First Name, Last Name, City, State,
+etc.) to include on your form. You can also choose any custom fields to add to your form. Enter
+the custom field number (1 – 250) that you would like to add data to. Then customize the Required
+Message. This displays the error message if the data isn’t entered. Add a label and choose the
+input type. NOTE: Be sure your input type matches your data type for your custom field. For example,
+if your Custom01 is set to a date field inside the emfluence Marketing Platform, then be sure to
+choose date as your type for your field on your widget too.
+
+
 == Changelog ==
 
 = 2.0 =
