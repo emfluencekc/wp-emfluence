@@ -1,5 +1,5 @@
 === Plugin Name ===
-Tags: emfluence, email, marketing
+Tags: email, email marketing, emailmarketing, emfluence, api, marketing automation, widget, email widget, email signup, mailing list, newsletter, form, automation
 Requires at least: 3.0.1
 Tested up to: 4.5.2
 Stable tag: 2.0
@@ -16,7 +16,7 @@ If you're a user of the emfluence Marketing Platform, this plugin is for you!
 Easily add any number of widgetized forms to your website. Each widget can have different input fields and add contacts
 to different contact groups.
 
-If you're not a user of our marketing platform, contact us now to get started with the best digital marketing platform around.
+If you're not a user of our marketing platform, <a href="https://www.emfluence.com/about-us/contact-us">contact us now</a> to get started with the best digital marketing platform around.
 
 Note that you'll likely want to tailor the forms to your theme using some CSS. You can also template the success message
 by copying the theme/success.php file from this plugin to your theme, if you wish (or just type out a success message
