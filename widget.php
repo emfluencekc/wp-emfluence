@@ -233,6 +233,7 @@ class emfluence_email_signup extends WP_Widget {
           }
         } else {
           // SUCCESS!
+          $this->send_notification($instance, $data);
           if(!empty($instance['success'])) $message = nl2br(wp_kses_post($instance['success']));
           if(empty($message)) {
             ob_start();
@@ -331,6 +332,70 @@ class emfluence_email_signup extends WP_Widget {
   }
 
   /**
+   * If a notification target has been provided, send the submission data to it.
+   * @param $instance
+   * @param $data
+   */
+  protected function send_notification($instance, $data) {
+    if(empty($instance['notify'])) return;
+    $message = 'This is an automated notification. The following submission was received:' . "\n\n";
+    foreach($data as $field=>$val) {
+      if($field == 'customFields') {
+        foreach($val as $custom_id=>$custom_val) {
+          $instance_key = str_replace('custom', 'custom_', $custom_id);
+          $label = $instance['fields'][$instance_key]['label'];
+          if($instance['fields'][$instance_key]['type'] === 'true-false') {
+            $custom_val['value'] = $custom_val['value'] ? 'Yes' : 'No';
+          }
+          if($instance['fields'][$instance_key]['type'] === 'textarea') {
+            $label .= "\n";
+          }
+          $message .= $label . ' ' . $custom_val['value'] . "\n";
+        }
+        continue;
+      }
+      $message .= $field . ': ' . $this->recursively_convert_to_string($val);
+    }
+    wp_mail(
+        $instance['notify'],
+        'New email signup form submission for "' . $instance['title'] . '"',
+        $message
+        );
+  }
+
+  /**
+   * Format an array for use in a plain text message.
+   * For use in the email notification.
+   * @param $data
+   * @param int $level
+   * @return string
+   */
+  protected function recursively_convert_to_string($data, $level = 0) {
+
+    if(is_string($data)) return $data . "\n";
+    if(!is_array($data)) return '';
+    $out = "\n";
+    foreach($data as $key=>$val) {
+      $out .= str_repeat('-', $level) . ' ' . $key . ': ' . $this->recursively_convert_to_string($val, $level + 1);
+    }
+    return $out;
+
+  }
+
+  /**
+   * Convert a potential CSV of email addresses to an array of trimmed email addresses.
+   * @param string $address_string
+   * @return array
+   */
+  protected function explode_emails($address_string) {
+    $emails = explode(',', $address_string);
+    foreach($emails as &$email) {
+      $email = trim($email);
+    }
+    return array_filter($emails);
+  }
+
+  /**
    * @param $instance
    * @param $groups
    * @return string
@@ -389,6 +454,33 @@ class emfluence_email_signup extends WP_Widget {
           <label for="' . $this->get_field_id( 'success' ) . '">' . __('Success message') . ':</label>
           <textarea id="' . $this->get_field_id( 'success' ) . '" name="' . $this->get_field_name( 'success' ) . '" style="width:100%;" >' . $instance['success'] . '</textarea>
           NOTE: If you set the success message here, any theme template file emfluence/success.php will be ignored.
+        </p>
+      </div>' . "\n";
+    return $output;
+  }
+
+  /**
+   * @param $instance
+   * @return string
+   */
+  protected function form_template_notification($instance) {
+    $validation = '';
+    if(!empty($instance['notify'])) {
+      $emails = $this->explode_emails($instance['notify']);
+      foreach($emails as $email) {
+        if(!is_email($email)) {
+          $validation = '<div class="validation error">The email address you entered is not valid</div>';
+        }
+      }
+    }
+    $output = '
+      <h3>' . __('Notification') . '</h3>
+      <div class="text_display">
+        <p>
+          <label for="' . $this->get_field_id( 'notify' ) . '">' . __('Email Address') . ':</label>
+          <input type="text" id="' . $this->get_field_id( 'notify' ) . '" name="' . $this->get_field_name( 'notify' ) . '" value="' . $instance['notify'] . '" style="width:100%;" />
+          (Leave blank to disable notification)
+          ' . $validation .'
         </p>
       </div>' . "\n";
     return $output;
@@ -629,6 +721,7 @@ class emfluence_email_signup extends WP_Widget {
         'custom_fields' => array(),
         'submit' => __('Signup'),
         'fields' => array(),
+        'notify' => ''
     );
 
     $contact_field_defaults = array(
@@ -775,6 +868,7 @@ class emfluence_email_signup extends WP_Widget {
     $output .= $this->form_template_groups($instance, $groups);
     $output .= $this->form_template_basic_fields($defaults, $instance);
     $output .= $this->form_template_custom_variables($defaults, $instance);
+    $output .= $this->form_template_notification($instance);
 
     // Output the datalist for groups just once
     if( intval($this->number) == 0  ) {
@@ -862,6 +956,7 @@ class emfluence_email_signup extends WP_Widget {
     $instance['text'] = stripslashes($new_instance['text']);
     $instance['submit'] = stripslashes($new_instance['submit']);
     $instance['success'] = stripslashes($new_instance['success']);
+    $instance['notify'] = stripslashes($new_instance['notify']);
 
     // If the current user isn't allowed to use unfiltered HTML, filter it
     if ( !current_user_can('unfiltered_html') ) {
