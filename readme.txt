@@ -1,8 +1,8 @@
 === Plugin Name ===
 Tags: email, email marketing, emailmarketing, emfluence, api, marketing automation, widget, email widget, email signup, mailing list, newsletter, form, automation
 Requires at least: 3.0.1
-Tested up to: 4.5.2
-Stable tag: 2.0
+Tested up to: 4.6.1
+Stable tag: 2.1
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -50,6 +50,9 @@ choose date as your type for your field on your widget too.
 
 
 == Changelog ==
+
+= 2.1 =
+* Admins can choose to have submissions also sent to a notification email address.
 
 = 2.0 =
 * Contacts are added to any groups selected by the admin. Private groups can be selected.
