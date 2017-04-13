@@ -102,6 +102,10 @@ class emfluence_email_signup extends WP_Widget {
    * @return string[]
    */
   protected function widget_validate($fields, $values) {
+
+    // honeypot
+    if(!empty($values['numerical-validation'])) return array(array( 'type' => 'error', 'value' => 'Please enter the correct math answer to prove that you are a real person.'));
+
     $defaults = $this->form_get_defaults();
     $messages = array();
     foreach( $fields as $key => $field ){
@@ -188,6 +192,7 @@ class emfluence_email_signup extends WP_Widget {
       }
 
       $messages = $this->widget_validate($instance['fields'], $values);
+      $messages = apply_filters('emfl_widget_validate', $messages, $instance);
       array_filter($values);
 
       if( empty($messages) ){
@@ -267,6 +272,13 @@ class emfluence_email_signup extends WP_Widget {
     $output .= '<input type="hidden" name="source" value="' . $current_page_url . '" />' . "\n";
     $output .= '<input type="hidden" name="groups" value="' . implode(',', $instance['groups']) . '" />' . "\n";
 
+    // honeypot
+    $output .= '<div class="numerical-validation required" style="display: none"><label for="numerical-validation">Please enter 5+2: <input type="text" id="numerical-validation" name="numerical-validation" /></label></div>';
+
+    ob_start();
+    do_action('emfl_widget_top_of_form', $instance);
+    $output .= ob_get_clean();
+
     usort($instance['fields'], function($a, $b){
       if($a['order'] == $b['order']){
         return 0;
@@ -319,6 +331,9 @@ class emfluence_email_signup extends WP_Widget {
       }
     }
 
+    ob_start();
+    do_action('emfl_widget_before_submit', $instance);
+    $output .= ob_get_clean();
     $output .= '<div class="row actions"><input type="submit" class="submit" value="' . esc_html($instance['submit']) . '" /></div>' . "\n";
 
     echo $this->widget_wrap_content($args, $output, $instance);
