@@ -1,7 +1,7 @@
 === Plugin Name ===
 Tags: email, email marketing, emailmarketing, emfluence, api, marketing automation, widget, email widget, email signup, mailing list, newsletter, form, automation
 Requires at least: 3.0.1
-Tested up to: 4.7.3
+Tested up to: 4.7.4
 Stable tag: 2.2
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
@@ -50,6 +50,10 @@ choose date as your type for your field on your widget too.
 
 
 == Changelog ==
+
+= 2.2.1 =
+
+* Fail more gracefully in the admin area if API token is not available.
 
 = 2.2 =
 * Add honeypot to cut down on spam submissions.
