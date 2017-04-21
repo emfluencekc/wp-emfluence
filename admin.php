@@ -93,6 +93,8 @@ function _emfluence_emailer_options_api_key_element(){
  * @return array
  */
 function _emfluence_emailer_options_validate($data){
+  if(empty($data['api_key'])) return $data;
+
   // Create a new instance of the api
   $api = emfluence_get_api($data['api_key'], TRUE);
 

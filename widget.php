@@ -866,6 +866,10 @@ class emfluence_email_signup extends WP_Widget {
 
   public function form( $instance ) {
     $options = get_option('emfluence_global');
+    if(empty($options['api_key'])) {
+      print '<div class="wp-emfluence">Please visit the emfluence plugin settings page and add an API token.</div>';
+      return;
+    }
     $api = emfluence_get_api($options['api_key']);
     $ping = $api->ping();
     if( !$ping || !$ping->success ){
