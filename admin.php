@@ -31,6 +31,13 @@ function emfluence_emailer_admin_init(){
       ,'emfluence_emailer'
       ,'account'
   );
+  add_settings_field(
+      'blacklist_domains',
+      'Blacklist Domains',
+      '_emfluence_emailer_options_blacklist_domains_element',
+      'emfluence_emailer',
+      'account'
+  );
 }
 add_action('admin_init', 'emfluence_emailer_admin_init');
 
@@ -40,13 +47,13 @@ function emfluence_emailer_admin_enqueue_scripts($hook) {
   if( !in_array($hook, array('widgets.php', 'customize.php')) ) {
     return;
   }
-  
+
   wp_enqueue_style(
       'emfluence-widget',
       plugins_url( '/css/widget-settings.css', __FILE__ ),
       array(),
       filemtime(__DIR__ . '/css/widget-settings.css')
-    );
+  );
 
   wp_enqueue_script(
       'emfluence-emailer-widget'
@@ -63,19 +70,19 @@ add_action( 'admin_enqueue_scripts', 'emfluence_emailer_admin_enqueue_scripts' )
  * Handles settings for the administration page
  */
 function _emfluence_emailer_options_page() {
-?>
-<div class="emfluence wrap">
- 	<h2><?php __( 'emfluence Marketing Platform' ); ?></h2>
+  ?>
+  <div class="emfluence wrap">
+    <h2><?php __( 'emfluence Marketing Platform' ); ?></h2>
 
-  <form action="options.php" method="post">
-    <?php settings_fields('emfluence_emailer'); ?>
-    <?php do_settings_sections('emfluence_emailer'); ?>
+    <form action="options.php" method="post">
+      <?php settings_fields('emfluence_emailer'); ?>
+      <?php do_settings_sections('emfluence_emailer'); ?>
 
-    <input name="Submit" type="submit" value="<?php esc_attr_e('Save Changes'); ?>" />
-  </form>
+      <input name="Submit" type="submit" value="<?php esc_attr_e('Save Changes'); ?>" />
+    </form>
 
-</div>
-<?php
+  </div>
+  <?php
 }
 
 function _emfluence_emailer_options_account_description(){
@@ -85,6 +92,21 @@ function _emfluence_emailer_options_account_description(){
 function _emfluence_emailer_options_api_key_element(){
   $options = get_option('emfluence_global');
   echo "<input id='api_key' name='emfluence_global[api_key]' size='36' type='text' value='{$options['api_key']}' />";
+}
+
+function _emfluence_emailer_options_blacklist_domains_element(){
+  $options = get_option('emfluence_global');
+  if(!array_key_exists('blacklist_domains', $options)) $options['blacklist_domains'] = '';
+  echo "
+    <textarea id='blacklist_domains' name='emfluence_global[blacklist_domains]' rows='10'>{$options['blacklist_domains']}</textarea>
+    <p>Form submissions with email address recipients in these domains will be rejected.</p>
+    <p>This is useful if you only want B2B leads.</p>
+    <p>Enter one domain per line, without commas. For example:<br />
+      hotmail.com<br />
+      gmail.com<br />
+      aol.com
+    </p>
+    ";
 }
 
 /**

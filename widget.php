@@ -62,20 +62,32 @@ class emfluence_email_signup extends WP_Widget {
    * @return boolean
    */
   protected function validate_email($email) {
+
     // Ensure the basic pattern is correct
     if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
       return false;
-    } else {
-      // Test the domain's MX records to avoid more fake domains in the correct pattern.
-      list($user, $domain) = explode('@', $email);
-      try {
-        if( !checkdnsrr($domain, 'MX') ){
-          return false;
-        }
-      } catch( Exception $e ){
+    }
+
+    // Test the domain's MX records to avoid more fake domains in the correct pattern.
+    list($user, $domain) = explode('@', $email);
+    try {
+      if( !checkdnsrr($domain, 'MX') ){
         return false;
       }
+    } catch( Exception $e ){
+      return false;
     }
+
+    // Check domain blacklist
+    $options = get_option('emfluence_global');
+    if(!empty($options['blacklist_domains'])) {
+      $blacklisted_domains = array_map(
+          function ($domain) { return strtolower(trim($domain)); },
+          array_filter(explode(PHP_EOL, $options['blacklist_domains']))
+      );
+      if(in_array(strtolower($domain), $blacklisted_domains, true)) return false;
+    }
+
     return true;
   }
 
@@ -123,9 +135,9 @@ class emfluence_email_signup extends WP_Widget {
       switch($field['type']) {
         case 'email':
           if(!$this->validate_email( $values[$key] )) {
-            $messages[] = array( 'type' => 'error', 'value' => sprintf(__('%s: Invalid email address.'), $field_name) );
+            $messages[] = array( 'type' => 'error', 'value' => sprintf(__('%s: Invalid email address or blacklisted email domain.'), $field_name) );
           }
-        break;
+          break;
         case 'number':
           if(!is_numeric($values[$key])) {
             $messages[] = array( 'type' => 'error', 'value' => sprintf(__('%s: Must be numeric.'), $field_name) );
@@ -152,7 +164,7 @@ class emfluence_email_signup extends WP_Widget {
     $title = apply_filters( 'Email Signup', empty( $instance[ 'title' ] ) ? __( 'Email Signup' ) : $instance[ 'title' ] );
     if( $title ) $title = $args['before_title'] . '<span>' . $title . '</span>' . $args['after_title'];
 
-    $output = $args['before_widget'] . '<form class="mail-form" method="post"><div class="holder"><div class="frame">';
+    $output = $args['before_widget'] . '<form id="' . esc_attr($args['widget_id']) . '" class="mail-form" method="post" action="#' . esc_attr($args['widget_id']) . '"><div class="holder"><div class="frame">';
     $output .= $title;
     $output .= $content;
     $output .= '</div></div></form>' . $args['after_widget'];
@@ -188,6 +200,7 @@ class emfluence_email_signup extends WP_Widget {
 
       // Set the field values in case there's an error
       foreach( $_POST as $key => $value ){
+        if(!is_string($value)) continue;
         $values[$key] = htmlentities( trim( $value ) );
       }
 
@@ -219,7 +232,7 @@ class emfluence_email_signup extends WP_Widget {
             continue;
           }
           $data['customFields'][$field] = array(
-            'value' => trim( $_POST[$parameter] ),
+              'value' => trim( $_POST[$parameter] ),
           );
         }
         if(empty($data['customFields'])) unset($data['customFields']);
@@ -342,7 +355,7 @@ class emfluence_email_signup extends WP_Widget {
         plugins_url( '/css/widget-frontend.css', __FILE__ ),
         array(),
         filemtime(__DIR__ . '/css/widget-frontend.css')
-      );
+    );
     return;
   }
 
@@ -375,7 +388,7 @@ class emfluence_email_signup extends WP_Widget {
         $instance['notify'],
         'New email signup form submission for "' . $instance['title'] . '"',
         $message
-        );
+    );
   }
 
   /**
@@ -427,18 +440,18 @@ class emfluence_email_signup extends WP_Widget {
           </p>
         </div>
         <div class="selected">' . "\n";
-        if( !empty($instance['groups']) ) {
-          foreach ($instance['groups'] as $groupID) {
-            $group = $groups[$groupID];
-            $id = 'groups-' . $this->number . '-' . $groupID;
-            $output .= '
+    if( !empty($instance['groups']) ) {
+      foreach ($instance['groups'] as $groupID) {
+        $group = $groups[$groupID];
+        $id = 'groups-' . $this->number . '-' . $groupID;
+        $output .= '
               <div>
                 <label for="' . $id . '">
                   <input id="' . $id . '" type="checkbox" value="' . $groupID . '" name="groups[]" checked /> ' . $group->groupName . '
                 </label>
               </div>';
-          }
-        }
+      }
+    }
     $output .= '
         </div>
       </div>';
@@ -939,7 +952,7 @@ class emfluence_email_signup extends WP_Widget {
       if(strpos($field_key, 'custom_') !== 0) continue;
       $is_custom_display = (
           strrpos($field_key, '_display') === (strlen($field_key) - strlen('_display'))
-          );
+      );
       if(!$is_custom_display) continue;
 
       // unset template fields.
@@ -964,7 +977,7 @@ class emfluence_email_signup extends WP_Widget {
           'label' => !empty($new_instance[$key_prefix . '_label'])? stripslashes(trim($new_instance[$key_prefix . '_label'])) : 'Custom ' . $variable_number . ':',
           'order' => is_numeric($new_instance[$key_prefix . '_order'])? $new_instance[$key_prefix . '_order'] : 6,
           'type' => empty($instance[$key_prefix . '_type']) ? 'text' : $this->restrict_to_types($instance[$key_prefix . '_type'])
-        );
+      );
     }
 
     // Unfortunately, these don't come through $new_instance
