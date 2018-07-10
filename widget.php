@@ -367,7 +367,9 @@ class emfluence_email_signup extends WP_Widget {
   protected function send_notification($instance, $data) {
     if(empty($instance['notify'])) return;
     $subject = empty($instance['notify-subject']) ? 'New email signup form submission for "' . $instance['title'] . '"' : $instance['notify-subject'];
-    $message = 'This is an automated notification. The following submission was received:' . "\n\n";
+    $message =
+        (empty($instance['notify-intro']) ? '' : $instance['notify-intro']) . PHP_EOL . PHP_EOL .
+        'This is an automated notification. The following submission was received:' . PHP_EOL . PHP_EOL;
     foreach($data as $field=>$val) {
       if($field == 'customFields') {
         foreach($val as $custom_id=>$custom_val) {
@@ -511,7 +513,11 @@ class emfluence_email_signup extends WP_Widget {
           <label for="' . $this->get_field_id( 'notify-subject' ) . '">' . __('Email Subject') . ':</label>
           <input type="text" id="' . $this->get_field_id( 'notify-subject' ) . '" name="' . $this->get_field_name( 'notify-subject' ) . '" value="' . $instance['notify-subject'] . '" style="width:100%;" />
           (Default is \'New email signup form submission for "{{Form Title}}")
-          ' . $validation .'
+        </p>
+        <p>
+          <label for="' . $this->get_field_id( 'notify-intro' ) . '">' . __('Introduction') . ':</label>
+          <textarea id="' . $this->get_field_id( 'notify-intro' ) . '" name="' . $this->get_field_name( 'notify-intro' ) . '" style="width:100%;" >' . $instance['notify-intro'] . '</textarea>
+          (If this email is going to someone other than yourself, introduce or describe the purpose of the email here)
         </p>
       </div>' . "\n";
     return $output;
@@ -993,6 +999,7 @@ class emfluence_email_signup extends WP_Widget {
     $instance['success'] = stripslashes($new_instance['success']);
     $instance['notify'] = stripslashes($new_instance['notify']);
     $instance['notify-subject'] = stripslashes($new_instance['notify-subject']);
+    $instance['notify-intro'] = stripslashes($new_instance['notify-intro']);
 
     // If the current user isn't allowed to use unfiltered HTML, filter it
     if ( !current_user_can('unfiltered_html') ) {
