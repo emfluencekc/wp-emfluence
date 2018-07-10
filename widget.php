@@ -366,6 +366,7 @@ class emfluence_email_signup extends WP_Widget {
    */
   protected function send_notification($instance, $data) {
     if(empty($instance['notify'])) return;
+    $subject = empty($instance['notify-subject']) ? 'New email signup form submission for "' . $instance['title'] . '"' : $instance['notify-subject'];
     $message = 'This is an automated notification. The following submission was received:' . "\n\n";
     foreach($data as $field=>$val) {
       if($field == 'customFields') {
@@ -384,11 +385,7 @@ class emfluence_email_signup extends WP_Widget {
       }
       $message .= $field . ': ' . $this->recursively_convert_to_string($val);
     }
-    wp_mail(
-        $instance['notify'],
-        'New email signup form submission for "' . $instance['title'] . '"',
-        $message
-    );
+    wp_mail( $instance['notify'], $subject, $message );
   }
 
   /**
@@ -505,9 +502,15 @@ class emfluence_email_signup extends WP_Widget {
       <h3>' . __('Notification') . '</h3>
       <div class="text_display">
         <p>
-          <label for="' . $this->get_field_id( 'notify' ) . '">' . __('Email Address') . ':</label>
+          <label for="' . $this->get_field_id( 'notify' ) . '">' . __('Recipient Email Address') . ':</label>
           <input type="text" id="' . $this->get_field_id( 'notify' ) . '" name="' . $this->get_field_name( 'notify' ) . '" value="' . $instance['notify'] . '" style="width:100%;" />
           (Leave blank to disable notification)
+          ' . $validation .'
+        </p>
+        <p>
+          <label for="' . $this->get_field_id( 'notify-subject' ) . '">' . __('Email Subject') . ':</label>
+          <input type="text" id="' . $this->get_field_id( 'notify-subject' ) . '" name="' . $this->get_field_name( 'notify-subject' ) . '" value="' . $instance['notify-subject'] . '" style="width:100%;" />
+          (Default is \'New email signup form submission for "{{Form Title}}")
           ' . $validation .'
         </p>
       </div>' . "\n";
@@ -989,6 +992,7 @@ class emfluence_email_signup extends WP_Widget {
     $instance['submit'] = stripslashes($new_instance['submit']);
     $instance['success'] = stripslashes($new_instance['success']);
     $instance['notify'] = stripslashes($new_instance['notify']);
+    $instance['notify-subject'] = stripslashes($new_instance['notify-subject']);
 
     // If the current user isn't allowed to use unfiltered HTML, filter it
     if ( !current_user_can('unfiltered_html') ) {
