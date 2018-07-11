@@ -512,6 +512,9 @@ class emfluence_email_signup extends WP_Widget {
       <h3>' . __('Notification') . '</h3>
       <div class="text_display">
         <p>
+          This notification email will be sent through your Wordpress site\'s email system. Don\'t forget to ensure that your website is set up to send emails.
+        </p>
+        <p>
           <label for="' . $this->get_field_id( 'notify' ) . '">' . __('Recipient Email Address') . ':</label>
           <input type="text" id="' . $this->get_field_id( 'notify' ) . '" name="' . $this->get_field_name( 'notify' ) . '" value="' . $instance['notify'] . '" style="width:100%;" />
           (Leave blank to disable notification)
@@ -928,7 +931,7 @@ class emfluence_email_signup extends WP_Widget {
       $output .= '</datalist>';
     }
 
-    print '<div class="wp-emfluence">' . $output . '</div>';
+    print '<p>Easily add or update contacts in your emfluence marketing platform account</p><div class="wp-emfluence">' . $output . '</div>';
   }
 
   /**
