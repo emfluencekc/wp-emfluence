@@ -216,6 +216,14 @@ class emfluence_email_signup extends WP_Widget {
         $data = array();
         $data['groupIDs'] = !empty($_POST['groups'])? $_POST['groups'] : '';
         $data['originalSource'] = trim( $_POST['source'] );
+        if( array_key_exists('HTTP_X_FORWARDED_FOR', $_SERVER) ){
+          $forwarded_ip_addresses = array_values(array_filter(explode(',',$_SERVER['HTTP_X_FORWARDED_FOR'])));
+          $data['ipaddress'] = array_pop($forwarded_ip_addresses);
+        } else if( array_key_exists('REMOTE_ADDR', $_SERVER) ) {
+          $data['ipaddress'] = $_SERVER["REMOTE_ADDR"];
+        } else if( array_key_exists('HTTP_CLIENT_IP', $_SERVER) ) {
+          $data['ipaddress'] = $_SERVER["HTTP_CLIENT_IP"];
+        }
 
         // basic contact fields
         foreach($instance['fields'] as $key=>$field) {
