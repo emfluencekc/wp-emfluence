@@ -20,7 +20,7 @@ function emfluence_emailer_admin_init(){
   register_setting('emfluence_emailer', 'emfluence_global', '_emfluence_emailer_options_validate');
   add_settings_section(
       'account'
-      ,__('Account Settings')
+      ,__('emfluence Settings')
       ,'_emfluence_emailer_options_account_description'
       ,'emfluence_emailer'
   );

@@ -28,6 +28,7 @@ function emfluence_get_api($access_token, $reset = FALSE){
 }
 
 function emfluence_load_widgets(){
+  require_once EMFLUENCE_EMAILER_PATH . 'inc/recaptcha.php';
   require_once EMFLUENCE_EMAILER_PATH . 'widget.php';
   register_widget( 'emfluence_email_signup' );
 }

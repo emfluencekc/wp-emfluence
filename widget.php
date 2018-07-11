@@ -205,7 +205,17 @@ class emfluence_email_signup extends WP_Widget {
       }
 
       $messages = $this->widget_validate($instance['fields'], $values);
-      $messages = apply_filters('emfl_widget_validate', $messages, $instance);
+
+      /**
+       * Filter: emfl_widget_validate
+       * @param array $messages If empty, the form validates successfully.
+       * @param array $instance Configuration of this widget.
+       * @pram string[] $values Submitted values, keyed by element names.
+       * @return array
+       *  Any errors. Each element sould be a string.
+       */
+      $messages = apply_filters('emfl_widget_validate', $messages, $instance, $values);
+
       array_filter($values);
 
       if( empty($messages) ){
@@ -279,7 +289,8 @@ class emfluence_email_signup extends WP_Widget {
     if( !empty($messages) ){
       $output .= '<ul class="messages">';
       foreach($messages as $message){
-        $output .= '<li class="message ' . $message['type'] . '">' . esc_html(__($message['value'])) . '</li>';
+        if(is_string($message)) $message = array('type' => 'error', 'value' => $message);
+        $output .= '<li class="message ' . esc_attr($message['type']) . '">' . esc_html(__($message['value'])) . '</li>';
       }
       $output .= '</ul>';
     }
