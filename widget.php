@@ -348,6 +348,8 @@ class emfluence_email_signup extends WP_Widget {
             <div class="radio"><input type="radio" name="' . $field['field_name'] . '" value="0" ' . $no_checked . '>' . __('No') . '</div>
           </div>' . "\n";
           break;
+        case 'hidden':
+          $output .=   '<input type="hidden" name="' . $field['field_name'] . '" id="emfluence_' . $key . '" value="' . esc_attr($values[$field['field_name']]) . '" />' . "\n";
           break;
       }
     }
@@ -690,6 +692,11 @@ class emfluence_email_signup extends WP_Widget {
         'options' => array(),
         'disabled' => '',
     );
+    $hidden_value_input = array(
+        'id' => $this->get_field_id( $key . '_hidden_value' ),
+        'name' => $this->get_field_name(  $key . '_hidden_value' ),
+        'value' => empty($field['hidden_value']) ? '' : $field['hidden_value'],
+    );
 
     if($key == 'email') {
       $display_input['disabled'] = 'disabled="disabled"';
@@ -727,11 +734,12 @@ class emfluence_email_signup extends WP_Widget {
             <label for="' . $label_input['id'] . '">' . __('Label') . '</label>
             <input type="text" id="' . $label_input['id'] . '" name="' . $label_input['name'] . '" value="' . $label_input['value'] . '" style="width:100%;" />
           </p>
-          <p>
+          <p class="type-section">
             <label for="' . $type_input['id'] . '">' . __('Type') . '</label>
-            <select id="' . $type_input['id'] . '" name="' . $type_input['name'] . '" ' . $type_input['disabled'] . '>
+            <select class="type-selector" id="' . $type_input['id'] . '" name="' . $type_input['name'] . '" ' . $type_input['disabled'] . '>
               ' . implode('', $type_input['options']) .'
             </select>
+            <input class="hidden-value" type="text" id="' . $hidden_value_input['id'] . '" name="' . $hidden_value_input['name'] . '" value="' . $hidden_value_input['value'] . '" placeholder="Hidden value" />
           </p>
         </div>
         ';
@@ -744,7 +752,7 @@ class emfluence_email_signup extends WP_Widget {
    */
   protected function form_get_allowed_types() {
     return array(
-        'text', 'textarea', 'email', 'date', 'number', 'true-false'
+        'text', 'textarea', 'email', 'date', 'number', 'true-false', 'hidden'
     );
   }
 
@@ -996,7 +1004,8 @@ class emfluence_email_signup extends WP_Widget {
           'required_message' => !empty($new_instance[$key_prefix . '_required_message'])? stripslashes(trim($new_instance[$key_prefix . '_required_message'])) : 'Custom ' . $variable_number . ' is required.',
           'label' => !empty($new_instance[$key_prefix . '_label'])? stripslashes(trim($new_instance[$key_prefix . '_label'])) : 'Custom ' . $variable_number . ':',
           'order' => is_numeric($new_instance[$key_prefix . '_order'])? $new_instance[$key_prefix . '_order'] : 6,
-          'type' => empty($instance[$key_prefix . '_type']) ? 'text' : $this->restrict_to_types($instance[$key_prefix . '_type'])
+          'type' => empty($instance[$key_prefix . '_type']) ? 'text' : $this->restrict_to_types($instance[$key_prefix . '_type']),
+          'hidden_value' => empty($instance[$key_prefix . '_hidden_value']) ? '' : stripslashes(trim($instance[$key_prefix . '_hidden_value']))
       );
     }
 

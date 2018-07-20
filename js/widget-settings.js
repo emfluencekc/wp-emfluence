@@ -8,6 +8,9 @@ emfluenceEmailerWidget = {
       collapsible: true,
       active: false
     });
+    jQuery('.wp-emfluence .type-selector').change(function() {
+      emfluenceEmailerWidget.fields.typeSelected(jQuery(this).parents('.type-section'));
+    });
   },
 
   groups: {
@@ -107,6 +110,15 @@ emfluenceEmailerWidget = {
         .replace(new RegExp('CONTACT_FIELD_LABEL', 'g'), fieldSettings['label'])
         .replace(new RegExp('CONTACT_FIELD_ORDER', 'g'), topOrder+1);
       return html;
+    }
+    ,typeSelected: function($selectionContainer) {
+      var theType = $selectionContainer.find('.type-selector option:selected').text();
+      $selectionContainer.find('.hidden-value').hide();
+      switch(theType) {
+        case 'hidden':
+          $selectionContainer.find('.hidden-value').show();
+          break;
+      }
     }
 
   },

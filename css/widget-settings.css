@@ -486,5 +486,6 @@
 .wp-emfluence .contact-field { border-top: solid 1px #aaa; padding: 5px 0 10px; }
 .wp-emfluence p.heading label { padding-right: 10px; display: inline-block; }
 .wp-emfluence label.heading { font-weight: 600; font-size: 1rem; }
+.wp-emfluence input.hidden-value { display: none; }
 
 /*# sourceMappingURL=widget-settings.css.map */
