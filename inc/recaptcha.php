@@ -54,14 +54,14 @@ class Emfl_Widget_Recaptcha {
     register_setting('emfluence_emailer', 'emfl_widget_recaptcha', array($this, 'settings_validate'));
     add_settings_section(
         'recaptcha'
-        ,__('Recaptcha Settings')
+        ,__('ReCAPTCHA Spam Filter')
         ,array($this, 'settings_description')
         ,'emfluence_emailer'
     );
 
     add_settings_field(
         'site_key',
-        __('Site Key'),
+        __('ReCAPTCHA v2 Site Key'),
         array($this, 'settings_input_element'),
         'emfluence_emailer',
         'recaptcha',
@@ -69,7 +69,7 @@ class Emfl_Widget_Recaptcha {
     );
     add_settings_field(
         'secret',
-        __('Secret'),
+        __('ReCAPTCHA v2 Secret'),
         array($this, 'settings_input_element'),
         'emfluence_emailer',
         'recaptcha',
@@ -78,7 +78,13 @@ class Emfl_Widget_Recaptcha {
   }
 
   function settings_description() {
-    echo 'If you would like to add a Recaptcha to your signup forms, provide <a href="https://www.google.com/recaptcha/admin" target="_blank">credentials</a> as <a href="https://developers.google.com/recaptcha/intro" target="_blank">documented here</a>.';
+    echo '
+      If you would like to add a ReCAPTCHA v2 spam filter to your signup forms, 
+      provide <a href="https://www.google.com/recaptcha/admin" target="_blank">credentials</a> 
+      as <a href="https://developers.google.com/recaptcha/intro" target="_blank">documented here</a>.
+      Note that if you have developed custom styles for your forms, you may need to refine those
+      styles to keep the forms looking good once the ReCAPTCHA is added.
+      ';
     // TODO: Validate the recaptcha settings
   }
 
