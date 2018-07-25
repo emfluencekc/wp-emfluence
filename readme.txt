@@ -1,8 +1,8 @@
 === Plugin Name ===
 Tags: email, email marketing, emailmarketing, emfluence, api, marketing automation, widget, email widget, email signup, mailing list, newsletter, form, automation
 Requires at least: 4.0
-Tested up to: 4.9.6
-Stable tag: 2.3
+Tested up to: 4.9.7
+Stable tag: 2.4
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -50,6 +50,12 @@ choose date as your type for your field on your widget too.
 
 
 == Changelog ==
+
+= 2.4 =
+* Add Hidden custom field type.
+* Add optional ReCAPTCHA. (see plugin settings page.)
+* Add logging of end user's IP address.
+* Improve notification emails through subject and introduction settings per forms, as well as email style.
 
 = 2.3 =
 * Add blacklist domain setting on plugin admin page.
