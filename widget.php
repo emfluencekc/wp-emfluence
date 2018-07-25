@@ -388,9 +388,9 @@ class emfluence_email_signup extends WP_Widget {
   protected function send_notification($instance, $data) {
     if(empty($instance['notify'])) return;
     $subject = empty($instance['notify-subject']) ? 'New email signup form submission for "' . $instance['title'] . '"' : $instance['notify-subject'];
-    $message =
-        (empty($instance['notify-intro']) ? '' : $instance['notify-intro']) . PHP_EOL . PHP_EOL .
-        'This is an automated notification. The following submission was received:' . PHP_EOL . PHP_EOL;
+    $template = file_get_contents(__DIR__ . '/notification/template.html');
+    $fields_html = array();
+    $field_template = file_get_contents(__DIR__ . '/notification/template-field.html');
     foreach($data as $field=>$val) {
       if($field == 'customFields') {
         foreach($val as $custom_id=>$custom_val) {
@@ -400,15 +400,20 @@ class emfluence_email_signup extends WP_Widget {
             $custom_val['value'] = $custom_val['value'] ? 'Yes' : 'No';
           }
           if($instance['fields'][$instance_key]['type'] === 'textarea') {
-            $label .= "\n";
+            $custom_val['value'] = wpautop($custom_val['value']);
           }
-          $message .= $label . ' ' . $custom_val['value'] . "\n";
+          $fields_html[] = str_replace(array('{{label}}', '{{value}}'), array($label, $custom_val['value']), $field_template);
         }
         continue;
       }
-      $message .= $field . ': ' . $this->recursively_convert_to_string($val);
+      $fields_html[] = str_replace(array('{{label}}', '{{value}}'), array($field, $this->recursively_convert_to_string($val)), $field_template);
     }
-    wp_mail( $instance['notify'], $subject, $message );
+    $intro = (empty($instance['notify-intro']) ? '' : wpautop($instance['notify-intro']));
+    $message = str_replace(array('{{intro}}', '{{fields}}'), array(
+        $intro,
+        implode('', $fields_html)
+      ), $template);
+    wp_mail( $instance['notify'], $subject, $message, array('Content-type: text/html;') );
   }
 
   /**
