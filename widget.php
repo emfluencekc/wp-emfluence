@@ -349,7 +349,7 @@ class emfluence_email_signup extends WP_Widget {
           </div>' . "\n";
           break;
         case 'hidden':
-          $output .=   '<input type="hidden" name="' . $field['field_name'] . '" id="emfluence_' . $key . '" value="' . esc_attr($values[$field['field_name']]) . '" />' . "\n";
+          $output .=   '<input type="hidden" name="' . $field['field_name'] . '" id="emfluence_' . $key . '" value="' . esc_attr($field['hidden_value']) . '" />' . "\n";
           break;
       }
     }

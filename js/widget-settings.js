@@ -8,7 +8,10 @@ emfluenceEmailerWidget = {
       collapsible: true,
       active: false
     });
-    jQuery('.wp-emfluence .type-selector').change(function() {
+    jQuery('.wp-emfluence .type-selector').each(function(index, el) {
+      emfluenceEmailerWidget.fields.typeSelected(jQuery(el).parents('.type-section'));
+    });
+    jQuery('.wp-emfluence').on('change', '.type-selector', function() {
       emfluenceEmailerWidget.fields.typeSelected(jQuery(this).parents('.type-section'));
     });
   },
