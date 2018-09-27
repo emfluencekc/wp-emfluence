@@ -1,8 +1,8 @@
 === Plugin Name ===
 Tags: email, email marketing, emailmarketing, emfluence, api, marketing automation, widget, email widget, email signup, mailing list, newsletter, form, automation
 Requires at least: 4.0
-Tested up to: 4.9.7
-Stable tag: 2.4.1
+Tested up to: 4.9.8
+Stable tag: 2.5
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -50,6 +50,11 @@ choose date as your type for your field on your widget too.
 
 
 == Changelog ==
+
+= 2.5 =
+* Add discount code functionality: Provide one-off discount codes to new contacts with this new form field type! The settings page has a way for you to upload a long list of one-off discount codes that you create.
+* Add more filter hooks for developers to extend this plugin.
+* Deprecate 'emfl_widget_custom_fields' filter hook that was added through a pull request. We've added a better hook, check out 'emfl_widget_before_contact_save'!
 
 = 2.4.1 =
 * Add endpoint to emfl API library. No impact on plugin functionality.
