@@ -254,19 +254,24 @@ class emfluence_email_signup extends WP_Widget {
           );
         }
 
-        if(empty($data['customFields'])) unset($data['customFields']);
-        else {
-          //allow others to insert values into custom fields (ex. IP address, user id's, etc.)
-          $data['customFields'] = apply_filters('emfl_widget_custom_fields', $data['customFields']);
+        // Deprecated filter 'emfl_widget_custom_fields'
+        $data['customFields'] = apply_filters('emfl_widget_custom_fields', $data['customFields']);
 
-          //clean out empty custom fields after filter
-          foreach($data['customFields'] as $key => $field ){
-            if(empty($field['value']))
-            {
-              unset($data['customFields'][$key]);
-            }
+        /* Allow others to insert values into the contact record (ex. user id's, etc).
+         * Note that the field keys in $instance['fields'] are like "custom_1"
+         * but the keys in $data['customFields'] need to be like "custom1".
+         * Remember to add custom fields in the format array('value' => $value).
+         */
+        $data = apply_filters('emfl_widget_before_contact_save', $data, $instance);
+
+        // Only save non-empty custom fields
+        foreach($data['customFields'] as $key => $field ){
+          if(empty($field['value'])) {
+            unset($data['customFields'][$key]);
           }
         }
+        if(empty($data['customFields'])) unset($data['customFields']);
+
         $result = $api->contacts_save($data);
 
         if( empty($result) ) {
@@ -780,9 +785,10 @@ class emfluence_email_signup extends WP_Widget {
    * @return string[]
    */
   protected function form_get_allowed_types() {
-    return array(
+    $field_types = array(
         'text', 'textarea', 'email', 'date', 'number', 'true-false', 'hidden'
     );
+    return apply_filters('emfl_widget_custom_field_types', $field_types);
   }
 
   /**
