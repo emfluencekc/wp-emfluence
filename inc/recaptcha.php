@@ -3,8 +3,9 @@
 class Emfl_Widget_Recaptcha {
 
   function __construct() {
-    static $hooked = FALSE;
-    if($hooked) return;
+    static $hooked;
+    if(TRUE === $hooked) return;
+    $hooked = TRUE;
     add_action('emfl_widget_before_submit', array($this, 'add_recaptcha_to_form'));
     add_filter('emfl_widget_validate', array($this, 'validate_recaptcha'), 10, 3);
     add_action('admin_init', array($this, 'admin_init'));
