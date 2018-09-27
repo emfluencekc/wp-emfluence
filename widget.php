@@ -246,14 +246,27 @@ class emfluence_email_signup extends WP_Widget {
         for( $i = 1; $i <= 255; $i++ ){
           $field = 'custom' . $i;
           $parameter = 'custom_' . $i;
-          if( empty($_POST[$parameter]) ){
+          if( !array_key_exists($parameter, $_POST) && empty($_POST[$parameter]) ){
             continue;
           }
           $data['customFields'][$field] = array(
               'value' => trim( $_POST[$parameter] ),
           );
         }
+
         if(empty($data['customFields'])) unset($data['customFields']);
+        else {
+          //allow others to insert values into custom fields (ex. IP address, user id's, etc.)
+          $data['customFields'] = apply_filters('emfl_widget_custom_fields', $data['customFields']);
+
+          //clean out empty custom fields after filter
+          foreach($data['customFields'] as $key => $field ){
+            if(empty($field['value']))
+            {
+              unset($data['customFields'][$key]);
+            }
+          }
+        }
         $result = $api->contacts_save($data);
 
         if( empty($result) ) {
