@@ -380,6 +380,10 @@ class emfluence_email_signup extends WP_Widget {
         case 'hidden':
           $output .=   '<input type="hidden" name="' . $field['field_name'] . '" id="emfluence_' . $key . '" value="' . esc_attr($field['hidden_value']) . '" />' . "\n";
           break;
+        default:
+          $custom_field_html = apply_filters('emfl_widget_render_custom_field_type', $field, $key, $values[$field['field_name']]);
+          if(is_string($custom_field_html)) $output .= $custom_field_html;
+          break;
       }
     }
 
@@ -964,6 +968,8 @@ class emfluence_email_signup extends WP_Widget {
     $output .= $this->form_template_basic_fields($defaults, $instance);
     $output .= $this->form_template_custom_variables($defaults, $instance);
     $output .= $this->form_template_notification($instance);
+    $extra_sections = apply_filters('emfl_widget_form_after_sections', $instance, $this);
+    if(is_string($extra_sections)) $output .= $extra_sections;
 
     // Output the datalist for groups just once
     if( intval($this->number) == 0  ) {
