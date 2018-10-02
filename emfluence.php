@@ -4,13 +4,12 @@ Plugin Name: emfluence Marketing Platform
 Plugin URI: https://github.com/emfluencekc/wp-emfluence
 Description: Easily add forms to your website for contacts to add or update their details in your emfluence Marketing Platform account.
 Author: emfluence Digital Marketing
-Version: 2.5
+Version: 2.6
 Author URI: https://www.emfluence.com
+Text Domain: emfl_form
 */
 
 define('EMFLUENCE_EMAILER_PATH', dirname(__FILE__) . '/');
-// For language internationalization
-// todo: load_plugin_textdomain( 'constant-contact-api', false, dirname( plugin_basename( __FILE__ ) ) . '/languages/' );
 
 /**
  * Get the singleton instance of the emfluence marketing platform api object

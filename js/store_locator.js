@@ -12,22 +12,29 @@ jQuery( document ).ready( function( $ ) {
     if(0 === zip.length) {
       $this_form.find('.store-options').html(default_store_options);
       emfl_form_store_locator_inject_origin({}, $this_form);
+      $this.data('last-query', '');
     }
     if(5 !== zip.length) return;
-    // TODO: Don't repeat the AJAX request if it's the same zip that was last used.
+    var last_query = $this.data('last-query');
+    if(last_query === zip) return;
+    $this.data('last-query', zip);
 
     $this_form.find('.store-options').html('<option value="">Loading...</option>');
     emfl_form_store_locator_inject_origin({}, $this_form);
-    $.getJSON(emfl_form_store_locator_ajax_url, {
+    var query = $.getJSON(emfl_form_store_locator_ajax_url, {
       action: 'emfl_form_store_search',
       zip: zip
     }, function(data) {
       if(('boolean' !== typeof(data.status)) || (true !== data.status)) {
         console.error('Bad response from AJAX store lookup query');
+        $this_form.find('.store-options').html('<option value="">No results.</option>');
         return;
       }
       emfl_form_store_locator_update_select_options(data.stores, $this_form);
       emfl_form_store_locator_inject_origin(data.origin, $this_form);
+    });
+    query.fail(function() {
+      $this_form.find('.store-options').html('<option value="">No results.</option>');
     });
 
   });

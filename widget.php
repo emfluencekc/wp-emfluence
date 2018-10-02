@@ -341,6 +341,13 @@ class emfluence_email_signup extends WP_Widget {
       $placeholder = __( str_replace(':', '', $field['label']) );
       $required = $field['required']? 'required' : '';
       $field['type'] = $this->restrict_to_types($field['type']);
+
+      /**
+       * Allows rendering of custom form parts that aren't directly attached to a contact field.
+       */
+      $before_field_html = apply_filters('emfl_widget_before_field', $field, $key, $values[$field['field_name']], $instance, $this);
+      if(is_string($before_field_html)) $output .= $before_field_html;
+
       switch( $field['type'] ){
         case 'text':
         case 'email':
@@ -388,7 +395,7 @@ class emfluence_email_signup extends WP_Widget {
     }
 
     ob_start();
-    do_action('emfl_widget_before_submit', $instance);
+    do_action('emfl_widget_before_submit', $instance, $this);
     $output .= ob_get_clean();
     $output .= '<div class="row actions"><input type="submit" class="submit" value="' . esc_html($instance['submit']) . '" /></div>' . "\n";
 
@@ -968,7 +975,7 @@ class emfluence_email_signup extends WP_Widget {
     $output .= $this->form_template_basic_fields($defaults, $instance);
     $output .= $this->form_template_custom_variables($defaults, $instance);
     $output .= $this->form_template_notification($instance);
-    $extra_sections = apply_filters('emfl_widget_form_after_sections', $instance, $this);
+    $extra_sections = apply_filters('emfl_widget_editor_after_sections', $instance, $this);
     if(is_string($extra_sections)) $output .= $extra_sections;
 
     // Output the datalist for groups just once
@@ -980,7 +987,9 @@ class emfluence_email_signup extends WP_Widget {
       $output .= '</datalist>';
     }
 
-    print '<p>Easily add or update contacts in your emfluence marketing platform account</p><div class="wp-emfluence">' . $output . '</div>';
+    print '<p>Easily add or update contacts in your emfluence marketing platform account</p>';
+    do_action('emfl_widget_editor_prefix');
+    print '<div class="wp-emfluence">' . $output . '</div>';
   }
 
   /**

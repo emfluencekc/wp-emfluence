@@ -2,7 +2,7 @@
 Tags: email, email marketing, emailmarketing, emfluence, api, marketing automation, widget, email widget, email signup, mailing list, newsletter, form, automation
 Requires at least: 4.0
 Tested up to: 4.9.8
-Stable tag: 2.5
+Stable tag: 2.6
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -50,6 +50,10 @@ choose date as your type for your field on your widget too.
 
 
 == Changelog ==
+
+= 2.6 =
+* Add integration with WP Store Locator plugin. If you have that plugin installed, you'll see additional options in the widget editor to add a Preferred Store to your signup form.
+* Add more filter hooks for developers to extend this plugin.
 
 = 2.5 =
 * Add discount code functionality: Provide one-off discount codes to new contacts with this new form field type! The settings page has a way for you to upload a long list of one-off discount codes that you create.

@@ -9,6 +9,9 @@ class Emfl_Widget_Store_Locator {
   protected $zip_field_name = 'store_locator_your_zip';
   protected $store_field_name = 'store_locator_store';
 
+  protected $required_field_name = 'preferred_store_required';
+  protected $order_field_name = 'preferred_store_order';
+
   function is_store_locator_plugin_active() {
     // Note: is_plugin_active() is not available in the init action or in the public part of a site, since it gets loaded later as part of the admin area.
     return class_exists( 'WP_Store_locator' );
@@ -25,8 +28,11 @@ class Emfl_Widget_Store_Locator {
   function init() {
     if(!$this->is_store_locator_plugin_active()) return;
     add_filter('emfl_widget_custom_field_types', array($this, 'widget_form_add_field_type'), 10, 1);
-    add_filter('emfl_widget_render_custom_field_type', array($this, 'widget_render_custom_field_type'), 10, 3);
+    add_filter('emfl_widget_before_field', array($this, 'widget_render_before_field'), 10, 5);
+    add_action('emfl_widget_before_submit', array($this, 'widget_render_before_submit'), 5, 2);
     add_filter('emfl_widget_before_contact_save', array($this, 'widget_before_contact_save'), 10, 2);
+    add_filter('emfl_widget_validate', array($this, 'widget_validate'), 10, 3);
+    add_filter('emfl_widget_editor_after_sections', array($this, 'editor_after_sections'), 10, 2);
     add_action('wp_ajax_emfl_form_store_search', array( $this, 'ajax_lookup_stores' ));
     add_action('wp_ajax_nopriv_emfl_form_store_search', array( $this, 'ajax_lookup_stores' ));
   }
@@ -48,11 +54,38 @@ class Emfl_Widget_Store_Locator {
     return $allowed_types;
   }
 
-  function widget_render_custom_field_type($field, $key, $value) {
-    // NOTE: We are rendering this wherever the first field is positioned.
-    static $has_rendered = FALSE;
-    if(TRUE === $has_rendered) return '';
-    $has_rendered = TRUE;
+  /**
+   * @param emfluence_email_signup $widget
+   * @return string
+   *  The Preferred Store question
+   */
+  function widget_render_before_field($next_field, $next_key, $next_value, $instance, $widget) {
+    $our_render_order = $instance[$this->order_field_name];
+    $next_field_render_order = $next_field['order'];
+    if($our_render_order > $next_field_render_order) return '';
+
+    return $this->widget_render($widget->number, $instance[$this->required_field_name]);
+  }
+
+  /**
+   * Output the Preferred Store question directly
+   * @param emfluence_email_signup $widget
+   */
+  function widget_render_before_submit($instance, $widget) {
+    echo $this->widget_render($widget->number, $instance[$this->required_field_name]);
+  }
+
+  /**
+   * Render the Preferred Store question
+   * @param int $widget_id We will only render once per widget render.
+   * @param bool $required Whether answering this question is required
+   * @return string
+   */
+  protected function widget_render($widget_id, $required = FALSE) {
+
+    static $has_rendered = array();
+    if(!empty($has_rendered[$widget_id])) return '';
+    $has_rendered[$widget_id] = TRUE;
 
     $label = __('Your preferred store', 'emfl_form');
     $placeholder = __('Search By Zip Code', 'emfl_form');
@@ -75,6 +108,7 @@ class Emfl_Widget_Store_Locator {
       $default_option_html .= '<option value="' . intval($option_id) . '" ' . $selected . '>' . esc_html($option_value) . '</option>';
     }
 
+    $errors = '';
     if(!empty($zip_value)) {
       try {
         $address = $this->geocode_zip_to_address($zip_value);
@@ -89,8 +123,7 @@ class Emfl_Widget_Store_Locator {
           }
         }
       } catch(Exception $e) {
-        d($e);
-        die();
+        $errors = '<!-- store locator rendering error: ' . esc_html($e->getMessage()) . ' -->';
       }
     }
 
@@ -102,15 +135,11 @@ class Emfl_Widget_Store_Locator {
         TRUE
     );
 
-    // TODO: Should this be coming from the first field setting, or a new form setting?
-    // TODO: Should the store selection be required too? Maybe only if the zip isn't empty and there are stores nearby?
-    $required = $field['required']? 'required' : '';
+    $required = !empty($instance[$this->required_field_name]);
 
     $output = '<div class="field row field-emfl-store-locator">' . PHP_EOL;
     $output .= '<label for="emfl_store_locator_your_zip">' . esc_html($label) . '';
-    if( $field['required'] ){
-      $output .= '<span class="required">*</span>';
-    }
+    if( $required ) $output .= '<span class="required">*</span>';
     $output .= '</label>' . PHP_EOL;
     $output .=   '<input placeholder="' . esc_attr($placeholder) . '" type="number" name="' . esc_attr($this->zip_field_name) . '" id="emfl_store_locator_your_zip" class="zip-code" value="' . esc_attr($zip_value) . '" ' . $required . ' />' . PHP_EOL;
     $output .=   '<select class="store-options" name="' . esc_attr($this->store_field_name) . '" data-default-html="' . esc_attr($default_option_html) . '">';
@@ -124,9 +153,31 @@ class Emfl_Widget_Store_Locator {
       }
     }
     $output .=   '</select>';
-    $output .= '</div>' . PHP_EOL;
-    $output .= '<script> var emfl_form_store_locator_ajax_url = emfl_form_store_locator_ajax_url || "' . admin_url( 'admin-ajax.php' ) . '"; </script>';
+    $output .= '</div>';
+    $output .= '<script> var emfl_form_store_locator_ajax_url = emfl_form_store_locator_ajax_url || "' . admin_url( 'admin-ajax.php' ) . '"; </script>' . PHP_EOL;
+    $output .= $errors;
+
     return $output;
+  }
+
+  function widget_validate($messages, $instance, $values) {
+    // Remove all validation errors for Preferred Store hidden fields. Should only be any if the "required" checkbox is checked on the field settings.
+    foreach($messages as $index=>$message) {
+      if(is_string($message)) continue;
+      if(FALSE !== strpos($message['field']['type'], 'preferred store')) unset($messages[$index]);
+    }
+    // Add our own validation errors if applicable.
+    $required = !empty($instance[$this->required_field_name]);
+    $has_zip = !empty($values[$this->zip_field_name]);
+    $has_store = !empty($values[$this->store_field_name]);
+    if($required && $has_zip && !$has_store) {
+      $messages[] = __('Please select your preferred store', 'emfl_form');
+    } elseif($required && $has_store && !$has_zip) {
+      $messages[] = __('Please enter your zip code', 'emfl_form');
+    } elseif($required && !($has_zip && $has_store)) {
+      $messages[] = __('Please enter your zip code and select your preferred store', 'emfl_form');
+    }
+    return $messages;
   }
 
   function widget_before_contact_save($data, $instance) {
@@ -183,6 +234,8 @@ class Emfl_Widget_Store_Locator {
   }
 
   /**
+   * Add a field value to either a general contact field or a
+   * custom contact variable, depending on the key.
    * @param array $contact Passed by reference.
    * @param string $key
    * @param string $value
@@ -196,12 +249,63 @@ class Emfl_Widget_Store_Locator {
   }
 
   /**
+   * @param array $instance
+   * @param emfluence_email_signup $widget
+   * @return string
+   */
+  function editor_after_sections($instance, $widget) {
+    $output = '<h3>' . esc_html(__('Preferred Store', 'emfl_form')) . '</h3>';
+    $output .= '<div class="preferred-store">';
+    $output .= '
+      <p><b>WP Store Locator plugin integration:</b></p>
+      <ul style="list-style: initial">
+        <li>Select "preferred store" data points as the field type in general contact fields and custom variable fields.</li>
+        <li>The Preferred Store question will only appear on your form if you are using at least 1 data point in a contact field.</li>
+      </ul>
+    ';
+
+    $key = $this->required_field_name;
+    $required_input = array(
+        'id' => $widget->get_field_id( $key ),
+        'name' => $widget->get_field_name( $key ),
+        'checked' => !empty($instance[$key]) ? 'checked="checked"' : '',
+    );
+    $key = $this->order_field_name;
+    $order_input = array(
+        'id' => $widget->get_field_id( $key ),
+        'name' => $widget->get_field_name( $key ),
+        'value' => !empty($instance[$key]) ? intval($instance[$key]) : 0,
+    );
+
+    $output .= '
+      <p>
+        <label for="' . esc_attr($required_input['id']) . '">
+          <input type="checkbox" id="' . esc_attr($required_input['id']) . '" name="' . esc_attr($required_input['name']) . '" value="1" ' . $required_input['checked'] . ' />
+          ' . __('Require both zip code and preferred store') . '
+        </label>
+      </p>
+      <p>
+        <label for="' . esc_attr($order_input['id']) . '">
+          <input type="text" id="' . esc_attr($order_input['id']) . '" name="' . esc_attr($order_input['name']) . '" value="' . esc_attr($order_input['value']) . '" class="order" size="2" />
+          ' . __('Order') . '
+        </label>
+      </p>
+    ';
+
+    $output .= '</div>';
+    return $output;
+  }
+
+  /**
    * @param string $zip
    * @return array
    *  May contain all or none of: 'state', 'city'
    * @uses wpsl_call_geocode_api()
    */
   protected function geocode_zip_to_address($zip) {
+    $cache = wp_cache_get('geocode_zip:' . $zip);
+    if(FALSE !== $cache) return $cache;
+
     $address = array();
     $response = wpsl_call_geocode_api( $zip );
 
@@ -221,6 +325,7 @@ class Emfl_Widget_Store_Locator {
     $address['lat'] = $response['results'][0]['geometry']['location']['lat'];
     $address['lng'] = $response['results'][0]['geometry']['location']['lng'];
 
+    wp_cache_set('geocode_zip:' . $zip, $address);
     return $address;
   }
 
@@ -228,7 +333,7 @@ class Emfl_Widget_Store_Locator {
     try {
       $address = $this->geocode_zip_to_address(sanitize_text_field($_GET['zip']));
       if (empty($address['lat'])) {
-        wp_send_json(array('status' => FALSE, 'err' => 'No geocode results'));
+        wp_send_json(array('status' => FALSE, 'err' => 'No geocode results', 'address' => $address));
         die();
       }
       global $wpsl;
