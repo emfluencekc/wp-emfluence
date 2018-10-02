@@ -122,9 +122,9 @@ class emfluence_email_signup extends WP_Widget {
     $messages = array();
     foreach( $fields as $key => $field ){
       if( $field['required'] && ($field['type'] === 'true-false') && !isset($values[$key])) {
-        $messages[] = array( 'type' => 'error', 'value' => __( $field['required_message'] ) );
+        $messages[] = array( 'type' => 'error', 'field' => $field, 'value' => __( $field['required_message'] ) );
       } elseif( $field['required'] && ($field['type'] !== 'true-false') && empty( $values[$key] ) ){
-        $messages[] = array( 'type' => 'error', 'value' => __( $field['required_message'] ) );
+        $messages[] = array( 'type' => 'error', 'field' => $field, 'value' => __( $field['required_message'] ) );
       } elseif(empty($values[$key])) continue;
       $field_name = isset($defaults['fields'][$key]) ? $defaults['fields'][$key]['name'] : str_replace(':', '', $field['label']);
       switch($key) {
@@ -135,18 +135,18 @@ class emfluence_email_signup extends WP_Widget {
       switch($field['type']) {
         case 'email':
           if(!$this->validate_email( $values[$key] )) {
-            $messages[] = array( 'type' => 'error', 'value' => sprintf(__('%s: Invalid email address or blacklisted email domain.'), $field_name) );
+            $messages[] = array( 'type' => 'error', 'field' => $field, 'value' => sprintf(__('%s: Invalid email address or blacklisted email domain.'), $field_name) );
           }
           break;
         case 'number':
           if(!is_numeric($values[$key])) {
-            $messages[] = array( 'type' => 'error', 'value' => sprintf(__('%s: Must be numeric.'), $field_name) );
+            $messages[] = array( 'type' => 'error', 'field' => $field, 'value' => sprintf(__('%s: Must be numeric.'), $field_name) );
           }
           break;
         case 'date':
           $time = strtotime($values[$key]);
           if(empty($time)) {
-            $messages[] = array( 'type' => 'error', 'value' => sprintf(__('%s: Must be a date.'), $field_name) );
+            $messages[] = array( 'type' => 'error', 'field' => $field, 'value' => sprintf(__('%s: Must be a date.'), $field_name) );
           }
           break;
       }
