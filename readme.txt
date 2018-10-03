@@ -1,8 +1,10 @@
-=== Plugin Name ===
+=== emfluence Marketing Platform ===
 Tags: email, email marketing, emailmarketing, emfluence, api, marketing automation, widget, email widget, email signup, mailing list, newsletter, form, automation
 Requires at least: 4.0
 Tested up to: 4.9.8
 Stable tag: 2.6
+Requires PHP: 5.6
+Contributors: emfluencekc, mightyturtle
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -21,6 +23,9 @@ If you're not a user of our marketing platform, <a href="https://www.emfluence.c
 Note that you'll likely want to tailor the forms to your theme using some CSS. You can also template the success message
 by copying the theme/success.php file from this plugin to your theme, if you wish (or just type out a success message
 in widget settings).
+
+Integrations:
+* When the <a href="https://wordpress.org/plugins/wp-store-locator/">WP Store Locator</a> plugin is also active, this plugin adds a Preferred Store form field type and associated data points.
 
 Want to change how this plugin works, or add to it? Fork it on GitHub!
 https://github.com/emfluencekc/wp-emfluence
