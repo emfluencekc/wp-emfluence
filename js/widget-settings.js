@@ -3,7 +3,8 @@
 emfluenceEmailerWidget = {
 
   init: function() {
-    jQuery('.wp-emfluence').accordion({
+    $container = jQuery('.wp-emfluence');
+    $container.accordion({
       heightStyle: "content",
       collapsible: true,
       active: false
@@ -11,9 +12,43 @@ emfluenceEmailerWidget = {
     jQuery('.wp-emfluence .type-selector').each(function(index, el) {
       emfluenceEmailerWidget.fields.typeSelected(jQuery(el).parents('.type-section'));
     });
-    jQuery('.wp-emfluence').on('change', '.type-selector', function() {
+    $container.on('change', '.type-selector', function() {
       emfluenceEmailerWidget.fields.typeSelected(jQuery(this).parents('.type-section'));
     });
+    emfluenceEmailerWidget.initValidationRedirectField();
+  },
+
+  initValidationRedirectField: function() {
+    var $redirectField = jQuery('.wp-emfluence .redirect-url');
+    $redirectField.change(function() {
+      // Validate
+      var $this = jQuery(this);
+      if(('' === $this.val()) || emfluenceEmailerWidget.validURL($this.val())) {
+        $this.siblings('.validation-error').remove();
+      } else {
+        if(0 === $this.siblings('.validation-error').length) $this.after('<span class="validation-error">Invalid URL format</span>');
+      }
+    });
+    $redirectField.keyup(function() {
+      // If already invalid, eagerly validate
+      var $this = jQuery(this);
+      if(0 === $this.siblings('.validation-error').length) return;
+      if(('' === $this.val()) || emfluenceEmailerWidget.validURL($this.val())) {
+        $this.siblings('.validation-error').remove();
+      }
+    });
+    $redirectField.each(function() {
+      // Maybe add a validation error if one didn't bootstrap (the JS validation is a little stricter than the server-side validation)
+      var $this = jQuery(this);
+      if(0 !== $this.siblings('.validation-error').length) return;
+      if(('' !== $this.val()) && !emfluenceEmailerWidget.validURL($this.val())) {
+        $this.after('<span class="validation-error">Invalid URL format</span>');
+      }
+    });
+  },
+
+  validURL: function(str) {
+    return /^(https?|s?ftp):\/\/(((([a-z]|\d|-|\.|_|~|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])|(%[\da-f]{2})|[!\$&'\(\)\*\+,;=]|:)*@)?(((\d|[1-9]\d|1\d\d|2[0-4]\d|25[0-5])\.(\d|[1-9]\d|1\d\d|2[0-4]\d|25[0-5])\.(\d|[1-9]\d|1\d\d|2[0-4]\d|25[0-5])\.(\d|[1-9]\d|1\d\d|2[0-4]\d|25[0-5]))|((([a-z]|\d|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])|(([a-z]|\d|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])([a-z]|\d|-|\.|_|~|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])*([a-z]|\d|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])))\.)+(([a-z]|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])|(([a-z]|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])([a-z]|\d|-|\.|_|~|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])*([a-z]|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])))\.?)(:\d*)?)(\/((([a-z]|\d|-|\.|_|~|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])|(%[\da-f]{2})|[!\$&'\(\)\*\+,;=]|:|@)+(\/(([a-z]|\d|-|\.|_|~|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])|(%[\da-f]{2})|[!\$&'\(\)\*\+,;=]|:|@)*)*)?)?(\?((([a-z]|\d|-|\.|_|~|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])|(%[\da-f]{2})|[!\$&'\(\)\*\+,;=]|:|@)|[\uE000-\uF8FF]|\/|\?)*)?(#((([a-z]|\d|-|\.|_|~|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])|(%[\da-f]{2})|[!\$&'\(\)\*\+,;=]|:|@)|\/|\?)*)?$/i.test(str);
   },
 
   groups: {

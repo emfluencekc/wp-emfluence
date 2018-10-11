@@ -487,5 +487,6 @@
 .wp-emfluence p.heading label { padding-right: 10px; display: inline-block; }
 .wp-emfluence label.heading { font-weight: 600; font-size: 1rem; }
 .wp-emfluence input.hidden-value { display: none; vertical-align: middle; }
+.wp-emfluence .validation-error { color: red; display: block; }
 
 /*# sourceMappingURL=widget-settings.css.map */

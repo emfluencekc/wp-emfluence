@@ -288,7 +288,16 @@ class emfluence_email_signup extends WP_Widget {
         } else {
           // SUCCESS!
           $this->send_notification($instance, $data);
-          if(!empty($instance['success'])) $message = nl2br(wp_kses_post($instance['success']));
+          if(!empty($instance['redirect']) && wp_http_validate_url($instance['redirect'])) {
+            // We're not using a header redirect for 2 reasons:
+            // 1. This output occurs after part of the page has already rendered, so we can't change headers. We could move it to a pre-rendering hook, but...
+            // 2. We might at some point decide to make the submit action AJAX-based, in which case a header-based redirect wouldn't make sense anyway.
+            $message = '
+              Redirecting...
+              <script> document.location.href = "' . esc_url($instance['redirect']) . '"; </script>
+              ';
+          }
+          if(empty($message) && !empty($instance['success'])) $message = nl2br(wp_kses_post($instance['success']));
           if(empty($message)) {
             ob_start();
             get_template_part('emfluence/success');
@@ -303,7 +312,7 @@ class emfluence_email_signup extends WP_Widget {
 
     $output = '';
 
-    // Output all messages
+    // Output error messages
     if( !empty($messages) ){
       $output .= '<ul class="messages">';
       foreach($messages as $message){
@@ -535,8 +544,21 @@ class emfluence_email_signup extends WP_Widget {
         <p>
           <label for="' . $this->get_field_id( 'success' ) . '">' . __('Success message') . ':</label>
           <textarea id="' . $this->get_field_id( 'success' ) . '" name="' . $this->get_field_name( 'success' ) . '" style="width:100%;" >' . $instance['success'] . '</textarea>
-          NOTE: If you set the success message here, any theme template file emfluence/success.php will be ignored.
+          If you set the success message here, any theme template file emfluence/success.php will be ignored.
         </p>
+        ';
+
+    $is_valid = empty($instance['redirect']) || wp_http_validate_url($instance['redirect']);
+    $output .= '
+        <p>
+          <label for="' . $this->get_field_id( 'redirect' ) . '">' . __('Success redirect URL') . ':</label>
+          <input type="text" class="redirect-url" id="' . $this->get_field_id( 'redirect' ) . '" name="' . $this->get_field_name( 'redirect' ) . '" value="' . $instance['redirect'] . '" style="width:100%;" placeholder="https://..." />
+          If you redirect, the success message will be ignored.
+          ' . ($is_valid ? '' : '<span class="validation-error">Invalid URL format</span>') . '
+        </p>
+        ';
+
+    $output .= '
       </div>' . "\n";
     return $output;
   }
@@ -819,6 +841,7 @@ class emfluence_email_signup extends WP_Widget {
     $defaults = array(
         'title' => __('Email Signup'),
         'text' => '',
+        'redirect' => '',
         'groups' => array(),
         'custom_fields' => array(),
         'submit' => __('Signup'),
@@ -1067,6 +1090,7 @@ class emfluence_email_signup extends WP_Widget {
     $instance['text'] = stripslashes($new_instance['text']);
     $instance['submit'] = stripslashes($new_instance['submit']);
     $instance['success'] = stripslashes($new_instance['success']);
+    $instance['redirect'] = stripslashes($new_instance['redirect']);
     $instance['notify'] = stripslashes($new_instance['notify']);
     $instance['notify-subject'] = stripslashes($new_instance['notify-subject']);
     $instance['notify-intro'] = stripslashes($new_instance['notify-intro']);
