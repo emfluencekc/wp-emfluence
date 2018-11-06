@@ -19,13 +19,17 @@ class emfluence_email_signup extends WP_Widget {
    */
   static function get_groups(){
     static $groups = NULL;
-
     if( $groups !== NULL ) return $groups;
 
+    require_once 'libraries/emfl_platform_api/response_objects/group.class.inc';
     $cached = wp_cache_get('emfluence:groups');
-    if(!empty($cached)) $groups = $cached;
-
-    if( $groups !== NULL ) return $groups;
+    $cache_valid = TRUE;
+    if(is_array($cached)) foreach($cached as $group) {
+      $has_required_properties = property_exists($group, 'groupName') && property_exists($group, 'groupID');
+      if(!$has_required_properties) $cache_valid = FALSE;
+    }
+    if($cache_valid && !empty($cached)) $groups = $cached;
+    if( NULL !== $groups ) return $groups;
 
     $options = get_option('emfluence_global');
     $api = emfluence_get_api($options['api_key']);
@@ -981,7 +985,8 @@ class emfluence_email_signup extends WP_Widget {
       return;
     }
     $api = emfluence_get_api($options['api_key']);
-    $ping = $api->ping();
+    static $ping = NULL;
+    if(NULL === $ping) $ping = $api->ping();
     if( !$ping || !$ping->success ){
       $output = '<h3>' . __('Authentication Failed') . '</h3>';
       $output .= '<p>' . __('Please check your api key to continue.') . '</p>';
