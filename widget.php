@@ -32,7 +32,11 @@ class emfluence_email_signup extends WP_Widget {
     if( NULL !== $groups ) return $groups;
 
     $options = get_option('emfluence_global');
-    $api = emfluence_get_api($options['api_key']);
+    try {
+      $api = emfluence_get_api($options['api_key']);
+    } catch(Exception $e) {
+      return NULL;
+    }
     $groups = array();
     $more = TRUE;
     $page_number = 1;
@@ -224,8 +228,6 @@ class emfluence_email_signup extends WP_Widget {
 
       if( empty($messages) ){
         // Try to subscribe them
-        $options = get_option('emfluence_global');
-        $api = emfluence_get_api($options['api_key']);
 
         $data = array();
         $data['groupIDs'] = !empty($_POST['groups'])? $_POST['groups'] : '';
@@ -276,7 +278,13 @@ class emfluence_email_signup extends WP_Widget {
         }
         if(empty($data['customFields'])) unset($data['customFields']);
 
-        $result = $api->contacts_save($data);
+        try {
+          $options = get_option('emfluence_global');
+          $api = emfluence_get_api($options['api_key']);
+          $result = $api->contacts_save($data);
+        } catch(Exception $e) {
+          $result = NULL;
+        }
 
         if( empty($result) ) {
           wp_mail(
@@ -984,10 +992,12 @@ class emfluence_email_signup extends WP_Widget {
       print '<div class="wp-emfluence">Please visit the emfluence plugin settings page and add an API token.</div>';
       return;
     }
-    $api = emfluence_get_api($options['api_key']);
     static $ping = NULL;
-    if(NULL === $ping) $ping = $api->ping();
-    if( !$ping || !$ping->success ){
+    try {
+      $api = emfluence_get_api($options['api_key']);
+      if (NULL === $ping) $ping = $api->ping();
+    } catch(Exception $e) {}
+    if( (NULL === $ping) || !$ping || !$ping->success ){
       $output = '<h3>' . __('Authentication Failed') . '</h3>';
       $output .= '<p>' . __('Please check your api key to continue.') . '</p>';
       print $output;

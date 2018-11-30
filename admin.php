@@ -117,13 +117,17 @@ function _emfluence_emailer_options_blacklist_domains_element(){
 function _emfluence_emailer_options_validate($data){
   if(empty($data['api_key'])) return $data;
 
-  // Create a new instance of the api
-  $api = emfluence_get_api($data['api_key'], TRUE);
-
-  // Ensure it works
-  $result = $api->ping();
+  try {
+    $api = emfluence_get_api($data['api_key'], TRUE);
+    // Ensure it works
+    $result = $api->ping();
+  } catch(Exception $e) {
+    $result = FALSE;
+    $exception_message = $e->getMessage();
+  }
   if( !$result || !$result->success ){
-    $message = __('Unable to access the API using the api key provided. Error message: ') . $api->errors->get_last();
+    $message = __('Unable to access the API using the api key provided. Error message: ') .
+        (empty($exception_message) ? $api->errors->get_last(): $exception_message);
     add_settings_error( 'api_key', 'api_key', $message , 'error' );
     $data['api_key'] = '';
     delete_transient('emfl-access-token-validation');
