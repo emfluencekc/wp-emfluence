@@ -441,7 +441,9 @@ class emfluence_email_signup extends WP_Widget {
     $template = file_get_contents(__DIR__ . '/notification/template.html');
     $fields_html = array();
     $field_template = file_get_contents(__DIR__ . '/notification/template-field.html');
+    $alternating = 'even'; // a class that alternates on each row between "even" and "odd".
     foreach($data as $field=>$val) {
+      $alternating = ('even' === $alternating) ? 'odd' : 'even';
       if($field == 'customFields') {
         foreach($val as $custom_id=>$custom_val) {
           $instance_key = str_replace('custom', 'custom_', $custom_id);
@@ -452,11 +454,11 @@ class emfluence_email_signup extends WP_Widget {
           if($instance['fields'][$instance_key]['type'] === 'textarea') {
             $custom_val['value'] = wpautop($custom_val['value']);
           }
-          $fields_html[] = str_replace(array('{{label}}', '{{value}}'), array($label, $custom_val['value']), $field_template);
+          $fields_html[] = str_replace(array('{{label}}', '{{value}}', '{{alternating}}'), array($label, $custom_val['value'], $alternating), $field_template);
         }
         continue;
       }
-      $fields_html[] = str_replace(array('{{label}}', '{{value}}'), array($field, $this->recursively_convert_to_string($val)), $field_template);
+      $fields_html[] = str_replace(array('{{label}}', '{{value}}', '{{alternating}}'), array($field, $this->recursively_convert_to_string($val), $alternating), $field_template);
     }
     $intro = (empty($instance['notify-intro']) ? '' : wpautop($instance['notify-intro']));
     $message = str_replace(array('{{intro}}', '{{fields}}'), array(
