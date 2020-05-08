@@ -181,12 +181,6 @@ class emfluence_email_signup extends WP_Widget {
   }
 
   function widget( $args, $instance ) {
-    /* TODO: Support more than one widget form per page.
-     * Currently this plugin works by rendering the form and submitting to the same page.
-     * It assumes that the form has been submitted by this instance of the widget.
-     * So multiple forms on the same page would try to all process the submission at the same time.
-     * We could probably resolve this by identifying the instance ID in the form.
-     */
     $values = array();
 
     if( !empty( $instance[ 'groups' ] ) ) $lists = implode(',', $instance['groups'] );
@@ -203,12 +197,13 @@ class emfluence_email_signup extends WP_Widget {
      * Form processing
      */
 
-    if( !empty($_POST) && $_POST['action'] == 'email_signup' ){
+    if( !empty($_POST) && ($_POST['action'] == 'email_signup') && ($_POST['form-id'] === $args['widget_id']) ){
       $defaults = $this->form_get_defaults();
 
       // Set the field values in case there's an error
       foreach( $_POST as $key => $value ){
         if(!is_string($value)) continue;
+        if('form-id' === $key) continue;
         $values[$key] = htmlentities( trim( $value ) );
       }
 
@@ -339,6 +334,7 @@ class emfluence_email_signup extends WP_Widget {
     }
 
     $current_page_url = remove_query_arg('sucess', $this->get_current_page_url());
+    $output .= '<input type="hidden" name="form-id" value="' . esc_attr($args['widget_id']) . '" />' . PHP_EOL;
     $output .= '<input type="hidden" name="action" value="email_signup" />' . "\n";
     $output .= '<input type="hidden" name="source" value="' . $current_page_url . '" />' . "\n";
     $output .= '<input type="hidden" name="groups" value="' . implode(',', $instance['groups']) . '" />' . "\n";
