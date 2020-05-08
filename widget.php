@@ -53,7 +53,7 @@ class emfluence_email_signup extends WP_Widget {
       foreach( $response->data->records as $group ){
         $groups[$group->groupID] = $group;
       }
-      if( !$response->data->paging->nextUrl ){
+      if( empty($response->data->paging['next']) ){
         $more = FALSE;
       } else {
         ++$page_number;
@@ -366,7 +366,8 @@ class emfluence_email_signup extends WP_Widget {
       /**
        * Allows rendering of custom form parts that aren't directly attached to a contact field.
        */
-      $before_field_html = apply_filters('emfl_widget_before_field', $field, $key, $values[$field['field_name']], $instance, $this);
+      $field_value = empty($values[$field['field_name']]) ? '' : $values[$field['field_name']];
+      $before_field_html = apply_filters('emfl_widget_before_field', $field, $key, $field_value, $instance, $this);
       if(is_string($before_field_html)) $output .= $before_field_html;
 
       switch( $field['type'] ){
@@ -380,7 +381,7 @@ class emfluence_email_signup extends WP_Widget {
             $output .= '<span class="required">*</span>';
           }
           $output .= '</label>' . "\n";
-          $output .=   '<input placeholder="' . esc_attr($placeholder) . '" type="' . $field['type'] . '" name="' . $field['field_name'] . '" id="emfluence_' . $key . '" value="' . esc_attr($values[$field['field_name']]) . '" ' . $required . ' />' . "\n";
+          $output .=   '<input placeholder="' . esc_attr($placeholder) . '" type="' . $field['type'] . '" name="' . $field['field_name'] . '" id="emfluence_' . $key . '" value="' . esc_attr($field_value) . '" ' . $required . ' />' . "\n";
           $output .= '</div>' . "\n";
           break;
         case 'textarea':
@@ -390,7 +391,7 @@ class emfluence_email_signup extends WP_Widget {
             $output .= '<span class="required">*</span>';
           }
           $output .= '</label>' . "\n";
-          $output .=   '<textarea placeholder="' . esc_attr($placeholder) . '" name="' . $field['field_name'] . '" id="emfluence_' . $key . '" ' . $required . '>' . esc_html($values[$field['field_name']]) . '</textarea>' . "\n";
+          $output .=   '<textarea placeholder="' . esc_attr($placeholder) . '" name="' . $field['field_name'] . '" id="emfluence_' . $key . '" ' . $required . '>' . esc_html($field_value) . '</textarea>' . "\n";
           $output .= '</div>' . "\n";
           break;
         case 'true-false':
@@ -409,7 +410,7 @@ class emfluence_email_signup extends WP_Widget {
           $output .=   '<input type="hidden" name="' . $field['field_name'] . '" id="emfluence_' . $key . '" value="' . esc_attr($field['hidden_value']) . '" />' . "\n";
           break;
         default:
-          $custom_field_html = apply_filters('emfl_widget_render_custom_field_type', $field, $key, $values[$field['field_name']]);
+          $custom_field_html = apply_filters('emfl_widget_render_custom_field_type', $field, $key, $field_value);
           if(is_string($custom_field_html)) $output .= $custom_field_html;
           break;
       }
