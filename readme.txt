@@ -1,7 +1,7 @@
 === emfluence Marketing Platform ===
 Tags: email, email marketing, emailmarketing, emfluence, api, marketing automation, widget, email widget, email signup, mailing list, newsletter, form, automation
 Requires at least: 4.0
-Tested up to: 5.4.1
+Tested up to: 5.5
 Stable tag: 2.8.1
 Requires PHP: 5.6
 Contributors: emfluencekc, mightyturtle
@@ -25,6 +25,7 @@ by copying the theme/success.php file from this plugin to your theme, if you wis
 in widget settings).
 
 Integrations:
+* Woocommerce: Customers can be added to product-specific platform groups upon purchase, and separate product-specific groups upon refund.
 * When the <a href="https://wordpress.org/plugins/wp-store-locator/">WP Store Locator</a> plugin is also active, this plugin adds a Preferred Store form field type and associated data points.
 
 Want to change how this plugin works, or add to it? Fork it on GitHub!

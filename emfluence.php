@@ -35,6 +35,13 @@ function emfluence_load_widgets(){
 }
 add_action( 'widgets_init', 'emfluence_load_widgets' );
 
+function emfluence_load_plugin_integrations() {
+  if(class_exists( 'WooCommerce' )) {
+    require_once 'inc/woocommerce.php';
+  }
+}
+add_action('plugins_loaded', 'emfluence_load_plugin_integrations');
+
 if(is_admin()) {
   require_once EMFLUENCE_EMAILER_PATH . 'admin.php';
 }
