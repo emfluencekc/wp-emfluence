@@ -554,7 +554,7 @@ class emfluence_email_signup extends WP_Widget {
         </p>
         <p>
           <label for="' . $this->get_field_id( 'success' ) . '">' . __('Success message') . ':</label>
-          <textarea id="' . $this->get_field_id( 'success' ) . '" name="' . $this->get_field_name( 'success' ) . '" style="width:100%;" >' . $instance['success'] . '</textarea>
+          <textarea id="' . $this->get_field_id( 'success' ) . '" name="' . $this->get_field_name( 'success' ) . '" style="width:100%;" >' . (empty($instance['success']) ? '' : $instance['success']) . '</textarea>
           If you set the success message here, any theme template file emfluence/success.php will be ignored.
         </p>
         ';
@@ -602,12 +602,12 @@ class emfluence_email_signup extends WP_Widget {
         </p>
         <p>
           <label for="' . $this->get_field_id( 'notify-subject' ) . '">' . __('Email Subject') . ':</label>
-          <input type="text" id="' . $this->get_field_id( 'notify-subject' ) . '" name="' . $this->get_field_name( 'notify-subject' ) . '" value="' . $instance['notify-subject'] . '" style="width:100%;" />
+          <input type="text" id="' . $this->get_field_id( 'notify-subject' ) . '" name="' . $this->get_field_name( 'notify-subject' ) . '" value="' . (empty($instance['notify-subject']) ? '' : $instance['notify-subject']) . '" style="width:100%;" />
           (Default is \'New email signup form submission for "{{Form Title}}")
         </p>
         <p>
           <label for="' . $this->get_field_id( 'notify-intro' ) . '">' . __('Introduction') . ':</label>
-          <textarea id="' . $this->get_field_id( 'notify-intro' ) . '" name="' . $this->get_field_name( 'notify-intro' ) . '" style="width:100%;" >' . $instance['notify-intro'] . '</textarea>
+          <textarea id="' . $this->get_field_id( 'notify-intro' ) . '" name="' . $this->get_field_name( 'notify-intro' ) . '" style="width:100%;" >' . (empty($instance['notify-intro']) ? '' : $instance['notify-intro']) . '</textarea>
           (If this email is going to someone other than yourself, introduce or describe the purpose of the email here)
         </p>
       </div>' . "\n";
@@ -1052,7 +1052,8 @@ class emfluence_email_signup extends WP_Widget {
           'required_message' => !empty($instance[$field_key . '_required_message'])? stripslashes(trim($instance[$field_key . '_required_message'])) : $field_key . ' address is required.',
           'label' => !empty($instance[$field_key . '_label'])? stripslashes(trim($instance[$field_key . '_label'])) : $default_field['label'],
           'order' => is_numeric($instance[$field_key . '_order'])? $instance[$field_key . '_order'] : 5,
-          'type' => empty($instance[$field_key . '_type']) ? 'text' : $this->restrict_to_types($instance[$field_key . '_type'])
+          'type' => empty($instance[$field_key . '_type']) ? 'text' : $this->restrict_to_types($instance[$field_key . '_type']),
+          'hidden_value' => empty($instance[$field_key . '_hidden_value']) ? '' : stripslashes(trim($instance[$field_key . '_hidden_value']))
       );
     }
     // Unset template fields.

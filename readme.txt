@@ -1,8 +1,8 @@
 === emfluence Marketing Platform ===
 Tags: email, email marketing, emailmarketing, emfluence, api, marketing automation, widget, email widget, email signup, mailing list, newsletter, form, automation
 Requires at least: 4.0
-Tested up to: 5.5
-Stable tag: 2.8.1
+Tested up to: 5.7.2
+Stable tag: 2.9
 Requires PHP: 5.6
 Contributors: emfluencekc, mightyturtle
 License: GPLv2 or later
@@ -56,6 +56,10 @@ choose date as your type for your field on your widget too.
 
 
 == Changelog ==
+
+= 2.9 =
+* Add WooCommerce integration
+* Make the hidden form field type work for basic contact fields.
 
 = 2.8.1 =
 * Resolve some PHP notices.
