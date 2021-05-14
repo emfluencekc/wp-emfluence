@@ -207,5 +207,5 @@ jQuery(function() {
 
   emfluenceEmailerWidget.init();
 
-  $('body').ajaxSuccess(emfluenceEmailerWidget.init);
+  $(document).ajaxSuccess(emfluenceEmailerWidget.init);
 });
