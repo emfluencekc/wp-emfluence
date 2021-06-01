@@ -2,7 +2,7 @@
 Tags: email, email marketing, emailmarketing, emfluence, api, marketing automation, widget, email widget, email signup, mailing list, newsletter, form, automation
 Requires at least: 4.0
 Tested up to: 5.7.2
-Stable tag: 2.9
+Stable tag: 2.10
 Requires PHP: 5.6
 Contributors: emfluencekc, mightyturtle
 License: GPLv2 or later
@@ -56,6 +56,9 @@ choose date as your type for your field on your widget too.
 
 
 == Changelog ==
+
+= 2.10 =
+* Deepen WooCommerce integration to allow add-on product fields
 
 = 2.9 =
 * Add WooCommerce integration

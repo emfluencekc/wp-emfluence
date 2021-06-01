@@ -1,5 +1,7 @@
 <?php
 
+require_once 'woocommerce.product.meta-field.php';
+
 class Emfl_Woocommerce {
 
   static $add_customer_to_group_field_id = 'emfl-platform-add-customer-to-group';
@@ -34,24 +36,22 @@ class Emfl_Woocommerce {
       return;
     }
 
-    $field_id = self::$add_customer_to_group_field_id;
-    $value = intval(get_post_meta($post->ID, $field_id, TRUE));
-    if(empty($value)) $value = '';
-    echo '
-    <label for="' . esc_attr($field_id) . '">Add the customer to this group</label>
-    <p><input type="number" name="' . esc_attr($field_id) . '" id="' . esc_attr($field_id) . '" placeholder="Group ID" value="' . esc_attr($value) . '" /></p>
-    ';
+    foreach($this->get_product_meta_fields() as $field) {
+      $field_id = $field->meta_key;
+      $value = intval(get_post_meta($post->ID, $field_id, TRUE));
+      if(empty($value)) $value = '';
+      echo '
+      <label for="' . esc_attr($field_id) . '">' . esc_html($field->editor_label) . '</label>
+      <p><input type="number" name="' . esc_attr($field_id) . '" id="' . esc_attr($field_id) . '" placeholder="' . esc_attr($field->editor_placeholder) . '" value="' . esc_attr($value) . '" /></p>
+      ';
+    }
 
-    $field_id = self::$add_refund_to_group_field_id;
-    $value = intval(get_post_meta($post->ID, $field_id, TRUE));
-    echo '
-    <label for="' . esc_attr($field_id) . '">Add Refunds to this group</label>
-    <p><input type="number" name="' . esc_attr($field_id) . '" id="' . esc_attr($field_id) . '" placeholder="Group ID" value="' . esc_attr($value) . '" /></p>
-    ';
   }
 
   function save_product_meta_values($post_id) {
-    foreach([self::$add_refund_to_group_field_id, self::$add_customer_to_group_field_id] as $field_id) {
+    if('product' !== get_post_type($post_id)) return;
+    foreach($this->get_product_meta_fields() as $field) {
+      $field_id = $field->meta_key;
       if(!array_key_exists($field_id, $_POST)) continue; // phpcs:ignore WordPress.Security.NonceVerification.Missing
       $value = intval($_POST[ $field_id ]); // phpcs:ignore WordPress.Security.NonceVerification.Missing
       if(empty($value)) {
@@ -60,6 +60,28 @@ class Emfl_Woocommerce {
         update_post_meta($post_id, $field_id, $value);
       }
     }
+  }
+
+  /**
+   * @return Emfl_Woocommerce_Product_Meta_Field_Definition[]
+   */
+  protected function get_product_meta_fields() {
+    $fields = [];
+    $fields[self::$add_customer_to_group_field_id] = new Emfl_Woocommerce_Product_Meta_Field_Definition(
+        self::$add_customer_to_group_field_id,
+        'Add the customer to this group',
+        'Group ID'
+    );
+    $fields[self::$add_refund_to_group_field_id] = new Emfl_Woocommerce_Product_Meta_Field_Definition(
+        self::$add_refund_to_group_field_id,
+        'Add refunded customers to this group',
+        'Group ID'
+    );
+
+    /**
+     * Themes and plugins can extend the fields by filtering this.
+     */
+    return apply_filters('emfl_woocommerce_product_meta_fields', $fields);
   }
 
   function checkout_order_processed( $order_id, $posted_data, $order) {
@@ -98,6 +120,9 @@ class Emfl_Woocommerce {
         'groupIDs' => array_values($platform_list_ids),
     );
     if(!empty($company)) $contact['company'] = $company;
+
+    $contact = apply_filters('emfl_woocommerce_order_processed_contact_save', $contact, $order, $api);
+
     $resp = $api->contacts_save($contact);
 
     if(empty($resp->success)) {
@@ -131,6 +156,9 @@ class Emfl_Woocommerce {
         'email' => empty($user) ? $order->get_billing_email() : $user->user_email,
         'groupIDs' => array_values($platform_list_ids),
     );
+
+    $contact = apply_filters('emfl_woocommerce_refund_contact_save', $contact, $order, $api);
+
     $resp = $api->contacts_save($contact);
 
     if(empty($resp->success)) {
