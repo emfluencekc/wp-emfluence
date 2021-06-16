@@ -57,6 +57,9 @@ choose date as your type for your field on your widget too.
 
 == Changelog ==
 
+= 2.11 =
+* Add an action hook after the contact has been saved, for integrations that want the contact ID and other contact data.
+
 = 2.10 =
 * Deepen WooCommerce integration to allow add-on product fields
 
