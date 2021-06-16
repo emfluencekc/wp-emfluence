@@ -294,6 +294,7 @@ class emfluence_email_signup extends WP_Widget {
           }
         } else {
           // SUCCESS!
+          do_action('emfl_widget_after_contact_save', $result, $data, $instance);
           $this->send_notification($instance, $data);
           if(!empty($instance['redirect']) && wp_http_validate_url($instance['redirect'])) {
             // We're not using a header redirect for 2 reasons:

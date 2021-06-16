@@ -2,7 +2,7 @@
 Tags: email, email marketing, emailmarketing, emfluence, api, marketing automation, widget, email widget, email signup, mailing list, newsletter, form, automation
 Requires at least: 4.0
 Tested up to: 5.7.2
-Stable tag: 2.10
+Stable tag: 2.11
 Requires PHP: 5.6
 Contributors: emfluencekc, mightyturtle
 License: GPLv2 or later
