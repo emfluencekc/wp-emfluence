@@ -63,6 +63,16 @@ class emfluence_email_signup extends WP_Widget {
     return $groups;
   }
 
+  protected function get_widget_id($instance) {
+    if(!empty($instance['settings_hash'])) return $instance['settings_hash'];
+    return $this->create_widget_id($instance);
+  }
+
+  protected function create_widget_id($instance) {
+    if(isset($instance['settings_hash'])) unset($instance['settings_hash']);
+    return md5(wp_json_encode($instance));
+  }
+
   /**
    * Validates an email
    *
@@ -172,7 +182,7 @@ class emfluence_email_signup extends WP_Widget {
     $title = apply_filters( 'Email Signup', empty( $instance[ 'title' ] ) ? __( 'Email Signup' ) : $instance[ 'title' ] );
     if( $title ) $title = $args['before_title'] . '<span>' . $title . '</span>' . $args['after_title'];
 
-    $output = $args['before_widget'] . '<form id="' . esc_attr($args['widget_id']) . '" class="mail-form" method="post" action="#' . esc_attr($args['widget_id']) . '"><div class="holder"><div class="frame">';
+    $output = $args['before_widget'] . '<form id="' . esc_attr($this->get_widget_id($instance)) . '" class="mail-form" method="post" action="#' . esc_attr($this->get_widget_id($instance)) . '"><div class="holder"><div class="frame">';
     $output .= $title;
     $output .= $content;
     $output .= '</div></div></form>' . $args['after_widget'];
@@ -197,7 +207,7 @@ class emfluence_email_signup extends WP_Widget {
      * Form processing
      */
 
-    if( !empty($_POST) && ($_POST['action'] == 'email_signup') && ($_POST['form-id'] === $args['widget_id']) ){
+    if( !empty($_POST) && ($_POST['action'] == 'email_signup') && ($_POST['form-id'] === $this->get_widget_id($instance)) ){
       $defaults = $this->form_get_defaults();
 
       // Set the field values in case there's an error
@@ -335,7 +345,7 @@ class emfluence_email_signup extends WP_Widget {
     }
 
     $current_page_url = remove_query_arg('sucess', $this->get_current_page_url());
-    $output .= '<input type="hidden" name="form-id" value="' . esc_attr($args['widget_id']) . '" />' . PHP_EOL;
+    $output .= '<input type="hidden" name="form-id" value="' . esc_attr($this->get_widget_id($instance)) . '" />' . PHP_EOL;
     $output .= '<input type="hidden" name="action" value="email_signup" />' . "\n";
     $output .= '<input type="hidden" name="source" value="' . $current_page_url . '" />' . "\n";
     $output .= '<input type="hidden" name="groups" value="' . implode(',', $instance['groups']) . '" />' . "\n";
@@ -1123,6 +1133,7 @@ class emfluence_email_signup extends WP_Widget {
       }
     }
 
+    $instance['settings_hash'] = $this->create_widget_id($instance);
     return $instance;
   }
 }
