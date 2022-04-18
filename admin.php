@@ -91,11 +91,13 @@ function _emfluence_emailer_options_account_description(){
 
 function _emfluence_emailer_options_api_key_element(){
   $options = get_option('emfluence_global');
+	if(empty($options) || !is_string($options['api_key'])) $options = array('api_key' => '');
   echo "<input id='api_key' name='emfluence_global[api_key]' size='36' type='text' value='{$options['api_key']}' />";
 }
 
 function _emfluence_emailer_options_blacklist_domains_element(){
   $options = get_option('emfluence_global');
+	if(!is_array($options)) $options = array();
   if(!array_key_exists('blacklist_domains', $options)) $options['blacklist_domains'] = '';
   echo "
     <textarea id='blacklist_domains' name='emfluence_global[blacklist_domains]' rows='10'>{$options['blacklist_domains']}</textarea>
