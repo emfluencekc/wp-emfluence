@@ -1,8 +1,8 @@
 === emfluence Marketing Platform ===
 Tags: email, email marketing, emailmarketing, emfluence, api, marketing automation, widget, email widget, email signup, mailing list, newsletter, form, automation
 Requires at least: 4.0
-Tested up to: 5.7.2
-Stable tag: 2.11
+Tested up to: 5.9.3
+Stable tag: 2.12
 Requires PHP: 5.6
 Contributors: emfluencekc, mightyturtle
 License: GPLv2 or later
@@ -56,6 +56,9 @@ choose date as your type for your field on your widget too.
 
 
 == Changelog ==
+
+= 2.12 =
+* Update platform authorization method
 
 = 2.11 =
 * Add an action hook after the contact has been saved, for integrations that want the contact ID and other contact data.
