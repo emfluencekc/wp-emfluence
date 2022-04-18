@@ -99,7 +99,6 @@ class Emfl_Platform_API {
 
     // make the call with the best request handler available
     $url = self::API_URL . '/' . $endpoint;
-    $params['accessToken'] = $this->access_token;
 
     if( function_exists('drupal_http_request') && defined('VERSION') ) {
       // Drupal request handler
@@ -107,7 +106,10 @@ class Emfl_Platform_API {
         $response = drupal_http_request(
             $url,
             array(
-              'headers' => array( 'Content-Type' => 'application/json' ),
+              'headers' => array(
+              	  'Content-Type'  => 'application/json',
+	              'Authorization' => 'Bearer ' . $this->access_token
+              ),
               'method' => 'POST',
               'data' => json_encode( (object) $params),
               'timeout' => $this->timeout
@@ -116,7 +118,10 @@ class Emfl_Platform_API {
       } else {
         $response = drupal_http_request(
             $url,
-            array( 'Content-Type' => 'application/json' ),
+	        array(
+	        	'Content-Type'  => 'application/json',
+		        'Authorization' => 'Bearer ' . $this->access_token
+	        ),
             'POST',
             json_encode( (object) $params),
             1,
@@ -130,7 +135,10 @@ class Emfl_Platform_API {
           $url,
           array(
               'timeout' => $this->timeout,
-              'headers' => array( 'Content-Type' => 'application/json' ),
+              'headers' => array(
+	              'Content-Type'  => 'application/json',
+	              'Authorization' => 'Bearer ' . $this->access_token,
+              ),
               'body' => json_encode( (object) $params )
           )
       );
@@ -148,9 +156,14 @@ class Emfl_Platform_API {
     } elseif( function_exists('curl_init') ) {
       // Fall back on CURL
       $curl = curl_init($url);
+      $authorization = 'Bearer ' . $this->access_token;
+
       curl_setopt($curl, CURLOPT_HEADER, false);
       curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
-      curl_setopt($curl, CURLOPT_HTTPHEADER, array("Content-type: application/json"));
+      curl_setopt($curl, CURLOPT_HTTPHEADER, array(
+      	  "Content-type: application/json",
+	      "Authorization: $authorization"
+	  ));
       curl_setopt($curl, CURLOPT_CONNECTTIMEOUT, 2);
       curl_setopt($curl, CURLOPT_TIMEOUT, $this->timeout);
       curl_setopt($curl, CURLOPT_POST, true);
