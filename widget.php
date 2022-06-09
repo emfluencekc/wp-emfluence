@@ -1099,7 +1099,7 @@ class emfluence_email_signup extends WP_Widget {
     }
 
     // Unfortunately, these don't come through $new_instance
-    $instance['groups'] = array_values($_POST['groups']);
+    $instance['groups'] = is_array($_POST['groups']) ? array_values($_POST['groups']) : array();
 
     // Clean up the free-form areas
     $instance['title'] = stripslashes($new_instance['title']);

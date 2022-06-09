@@ -91,7 +91,7 @@ function _emfluence_emailer_options_account_description(){
 
 function _emfluence_emailer_options_api_key_element(){
   $options = get_option('emfluence_global');
-	if(empty($options) || !is_string($options['api_key'])) $options = array('api_key' => '');
+	if(empty($options) || !is_array($options) || !is_string($options['api_key'])) $options = array('api_key' => '');
   echo "<input id='api_key' name='emfluence_global[api_key]' size='36' type='text' value='{$options['api_key']}' />";
 }
 
