@@ -46,6 +46,7 @@ class emfluence_email_signup extends WP_Widget {
           'page' => $page_number,
           'type' => 'Static'
       ));
+      
       if( !$response || !$response->success ){
         $more = FALSE;
         break;
@@ -504,6 +505,7 @@ class emfluence_email_signup extends WP_Widget {
    * @return string
    */
   protected function form_template_groups($instance, $groups) {
+
     $output = '
       <h3>' . __('Groups') . '</h3>
       <div class="groups">
@@ -512,17 +514,22 @@ class emfluence_email_signup extends WP_Widget {
           <p>
             <input list="emfluence-emailer-groups-list"/>
             <button type="button" onclick="emfluenceEmailerWidget.groups.add(this)">' . __('Add') . '</button>
+            <!-- Subrata -->
+            <input class="begroups" type="text" id="' . $this->get_field_id( 'begroups' ) . '" name="' . $this->get_field_name( 'begroups' ) . '" value="' . $instance['begroups'] . '" style="display:none;" />
+            <!-- Subrata -->
           </p>
         </div>
         <div class="selected">' . "\n";
+
     if( !empty($instance['groups']) ) {
       foreach ($instance['groups'] as $groupID) {
         $group = $groups[$groupID];
         $id = 'groups-' . $this->number . '-' . $groupID;
+
         $output .= '
               <div>
                 <label for="' . $id . '">
-                  <input id="' . $id . '" type="checkbox" value="' . $groupID . '" name="groups[]" checked /> ' . $group->groupName . '
+                  <input onclick="emfluenceEmailerWidget.groups.removeGroup(this)" id="' . $id . '" type="checkbox" value="' . $groupID . '" name="groups[]" checked /> ' . $group->groupName . '
                 </label>
               </div>';
       }
@@ -549,6 +556,7 @@ class emfluence_email_signup extends WP_Widget {
           <label for="' . $this->get_field_id( 'text' ) . '">' . __('Text') . ':</label>
           <textarea id="' . $this->get_field_id( 'text' ) . '" name="' . $this->get_field_name( 'text' ) . '" style="width:100%;" >' . $instance['text'] . '</textarea>
         </p>
+
         <p>
           <label for="' . $this->get_field_id( 'submit' ) . '">' . __('Submit button') . ':</label>
           <input type="text" id="' . $this->get_field_id( 'submit' ) . '" name="' . $this->get_field_name( 'submit' ) . '" value="' . $instance['submit'] . '" style="width:100%;" />
@@ -853,6 +861,8 @@ class emfluence_email_signup extends WP_Widget {
     $defaults = array(
         'title' => __('Email Signup'),
         'text' => '',
+        //Subrata
+        'begroups' => '',
         'redirect' => '',
         'groups' => array(),
         'custom_fields' => array(),
@@ -974,6 +984,14 @@ class emfluence_email_signup extends WP_Widget {
             'label' => 'Memo:',
             'type' => 'textarea',
             'platform' => 'memo'
+        ),
+        //Subrata
+        'ipaddr' => array(
+          'name' => 'IP Address',
+          'required_message' => 'IP Address is required',
+          'label' => 'IP Address:',
+          'type' => 'text',
+          'platform' => 'ipaddr',
         )
     );
 
@@ -1008,7 +1026,7 @@ class emfluence_email_signup extends WP_Widget {
     $instance = wp_parse_args( (array) $instance, $defaults );
     $groups = emfluence_email_signup::get_groups();
 
-    $output = $this->form_template_text_display($instance);
+    $output  = $this->form_template_text_display($instance);
     $output .= $this->form_template_groups($instance, $groups);
     $output .= $this->form_template_basic_fields($defaults, $instance);
     $output .= $this->form_template_custom_variables($defaults, $instance);
@@ -1016,8 +1034,11 @@ class emfluence_email_signup extends WP_Widget {
     $extra_sections = apply_filters('emfl_widget_editor_after_sections', $instance, $this);
     if(is_string($extra_sections)) $output .= $extra_sections;
 
+
     // Output the datalist for groups just once
-    if( intval($this->number) == 0  ) {
+    // if( intval($this->number) == 0  )
+    if( intval($this->number) >= 0  ) { // Subrata
+      $output .= '<input type="hidden" id="emfluence_email_signup_instance" value="' . $this->number . '" />';
       $output .= '<datalist id="emfluence-emailer-groups-list" style="display: none;">';
       foreach ($groups as $group) {
         $output .= '<option>' . $group->groupName . ' [' . $group->groupID . ']' . '</option>';
@@ -1035,7 +1056,6 @@ class emfluence_email_signup extends WP_Widget {
    */
   function update( $new_instance, $old_instance ) {
     $instance = $new_instance;
-
     $instance['fields'] = array();
 
     // Force certain settings for email field
@@ -1099,11 +1119,21 @@ class emfluence_email_signup extends WP_Widget {
     }
 
     // Unfortunately, these don't come through $new_instance
-    $instance['groups'] = is_array($_POST['groups']) ? array_values($_POST['groups']) : array();
+    // We take the values from begroups field (for block editors) becaise $_POST is not recognized.
+
+    if( is_array($_POST['groups']) ) {
+      $instance['groups'] = array_values($_POST['groups']);
+    } else if(strlen( $new_instance['begroups'] ) > 0) {
+      $selected_group_ids = $new_instance['begroups'];
+      $instance['groups'] = preg_split("/\,/", $selected_group_ids);
+    } else {
+      $instance['groups'] = array();
+    }
 
     // Clean up the free-form areas
     $instance['title'] = stripslashes($new_instance['title']);
     $instance['text'] = stripslashes($new_instance['text']);
+    $instance['begroups'] = stripslashes($new_instance['begroups']);
     $instance['submit'] = stripslashes($new_instance['submit']);
     $instance['success'] = stripslashes($new_instance['success']);
     $instance['redirect'] = stripslashes($new_instance['redirect']);
@@ -1115,6 +1145,7 @@ class emfluence_email_signup extends WP_Widget {
     if ( !current_user_can('unfiltered_html') ) {
       $instance['title'] = strip_tags($new_instance['title']);
       $instance['text'] = strip_tags($new_instance['text']);
+      $instance['begroups'] = strip_tags($new_instance['begroups']);
       $instance['submit'] = strip_tags($new_instance['submit']);
       $instance['success'] = strip_tags($new_instance['success']);
       foreach($instance['fields'] as &$field){
