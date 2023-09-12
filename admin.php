@@ -56,9 +56,11 @@ function emfluence_emailer_admin_enqueue_scripts($hook) {
   );
 
   wp_enqueue_script(
-      'emfluence-emailer-widget'
-      ,plugins_url( '/js/widget-settings.min.js', __FILE__ )
-      ,array('jquery', 'jquery-ui-accordion', 'jquery-ui-datepicker')
+    'emfluence-emailer-widget'
+    //,plugins_url( '/js/widget-settings.min.js', __FILE__ )
+    //Subrata
+    ,plugins_url( '/js/widget-settings.js', __FILE__ )
+    ,array('jquery', 'jquery-ui-accordion', 'jquery-ui-datepicker')
   );
 
   // in JavaScript, object properties are accessed as ajax_object.ajax_url, ajax_object.we_value
