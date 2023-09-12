@@ -2,7 +2,7 @@
 Tags: email, email marketing, emailmarketing, emfluence, api, marketing automation, widget, email widget, email signup, mailing list, newsletter, form, automation
 Requires at least: 4.0
 Tested up to: 6.0
-Stable tag: 2.13
+Stable tag: 2.13.1
 Requires PHP: 5.6
 Contributors: emfluencekc, mightyturtle
 License: GPLv2 or later
@@ -57,7 +57,7 @@ choose date as your type for your field on your widget too.
 
 == Changelog ==
 
-= 2.13 =
+= 2.13.1 =
 * PHP error fixes
 
 = 2.12 =
