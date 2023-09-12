@@ -1,5 +1,6 @@
 // Multiple instances of the widget may exist on the widget settings page.
 // This is completely functional programming.
+
 emfluenceEmailerWidget = {
 
   init: function() {
@@ -9,6 +10,7 @@ emfluenceEmailerWidget = {
       collapsible: true,
       active: false
     });
+    
     jQuery('.wp-emfluence .type-selector').each(function(index, el) {
       emfluenceEmailerWidget.fields.typeSelected(jQuery(el).parents('.type-section'));
     });
@@ -55,9 +57,18 @@ emfluenceEmailerWidget = {
     add: function(element){
       $widget = jQuery(element).parents('.widget');
       $input = this.getInput($widget);
+      
+      //Subrata
+      $groupIdsContainer = this.getGroupIdsContainer($widget);
+      //Subrata
 
       // Validate the value
       var values = this.processValue($input.val());
+      
+      //Subrata
+      //console.log(values.id);
+      //Subrata
+      
       if( !values ){
         return;
       }
@@ -71,14 +82,51 @@ emfluenceEmailerWidget = {
       }
 
       $checkboxesContainer.append( this.createCheckbox($widget, values) );
+      
+      //Subrata
+      if($groupIdsContainer.val().length === 0) {
+        $groupIdsContainer.val( values.id );
+      } else {
+        $groupIdsContainer.val( $groupIdsContainer.val() + ',' + values.id );
+      }
+      //Subrata
+
       $input.val(null);
     }
+    
+    //Subrata
+    ,removeGroup: function(element) {
+      $widget = jQuery(element).parents('.widget');
+      $groupIdsContainer = this.getGroupIdsContainer($widget);
+      $currentGroupId = jQuery(element).attr("value");
+      $groupIdsArray = $groupIdsContainer.val().split(',');
+
+      if(jQuery(element).is(":checked")) {
+        $groupIdsArray.push($currentGroupId);
+      } else {
+        $groupIdsArray = jQuery.grep( $groupIdsArray, function(value) {
+          return value != $currentGroupId;
+        });
+      }
+
+      $commaString = $groupIdsArray.join(",");
+      $groupIdsContainer.val($commaString);
+    }
+    //Subrata
+
     ,getInput: function($widget){
       return $widget.find('.groups input[list]');
     }
     ,getCheckboxesContainer: function($widget){
       return $widget.find('.groups .selected');
     }
+
+    //Subrata
+    ,getGroupIdsContainer: function($widget) {
+      return $widget.find('.begroups');
+    }
+    //Subrata
+
     ,processValue: function(value){
       // Seperate the name and id
       // It should be in the format of name [##]
@@ -92,8 +140,21 @@ emfluenceEmailerWidget = {
       }
     }
     ,createCheckbox: function($widget, values){
-      var widgetId = $widget.attr('id').slice(-1);
-      var id = 'groups-' + widgetId + '-' + values.id;
+      //Subrata
+      var widgetId = '';
+      var id = '';
+      
+      try{
+        widgetId = $widget.attr('id').slice(-1);
+        id = 'groups-' + widgetId + '-' + values.id;
+      }
+      catch {
+        instance_number = jQuery("#emfluence_email_signup_instance").val();
+        widgetId = 'widget-7_emfluence_email_signup-' + instance_number.slice(-1);
+        id = 'groups-' + instance_number + '-' + values.id;
+      }
+      //Subrata
+      
       var html =
         '<div><label for="' + id + '">\
           <input id="' + id + '" type="checkbox" value="' + values.id + '" name="groups[]" checked /> ' + values.name + '\
