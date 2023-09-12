@@ -1,5 +1,8 @@
 <?php
 
+// Subrata
+// add_filter( 'use_widgets_block_editor', '__return_false' );
+
 // Add settings link on plugin page
 function emfluence_emailer_settings_link($links) {
   $settings_link = '<a href="options-general.php?page=emfluence_emailer">Settings</a>';
