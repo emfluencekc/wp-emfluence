@@ -10,6 +10,13 @@
     padding-right: 10px;
     display: inline-block;
   }
+  p.heading label:first-of-type { 
+    font-weight: bold !important; 
+  }
+  p.heading label input.order {
+    display: inline !important;
+    width: 40px !important;
+  }
   label.heading {
     font-weight: 600;
     font-size: 1rem;
@@ -21,5 +28,50 @@
   .validation-error {
     color: red;
     display: block;
+  }
+
+  p {
+    font-size: 12px;
+  }
+
+  div.filter { 
+    display: block; width: 100%; 
+  }
+
+  div.selected { 
+    display: block; 
+    width: 100%; 
+    padding: 0 10px; 
+
+    div { 
+      display: block; 
+    }
+  }
+
+  .basic-fields-adder {
+    p {
+      select {
+        display: inline-block !important; width: 60% !important;
+      }
+
+      button {
+        display: inline-block !important; margin-left: 6px;
+      }
+    }
+  }
+
+  .custom-variable-adder p input { 
+    width: 60% !important; 
+    display: inline-block !important;
+  }
+  .custom-variable-adder p button { 
+    display: inline-block !important;
+    margin-left: 5px;
+  }
+}
+
+.widget-content {
+  p {
+    font-size: 12px;
   }
 }

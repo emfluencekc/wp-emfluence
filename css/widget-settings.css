@@ -485,8 +485,24 @@
 .wp-emfluence { padding: 10px 0; }
 .wp-emfluence .contact-field { border-top: solid 1px #aaa; padding: 5px 0 10px; }
 .wp-emfluence p.heading label { padding-right: 10px; display: inline-block; }
+.wp-emfluence p.heading label:first-of-type { font-weight: bold !important; }
+.wp-emfluence p.heading label input.order { display: inline !important; width: 40px !important; }
 .wp-emfluence label.heading { font-weight: 600; font-size: 1rem; }
 .wp-emfluence input.hidden-value { display: none; vertical-align: middle; }
 .wp-emfluence .validation-error { color: red; display: block; }
+
+.widget-content p, .widget-content .wp-emfluence p { font-size: 12px; }
+.widget-content .wp-emfluence div.filter { display: block; width: 100%; }
+.widget-content .wp-emfluence div.selected { display: block; width: 100%; padding: 0 10px; }
+.widget-content .wp-emfluence div.selected div { display: block; }
+
+.wp-emfluence .basic-fields-adder p select { display: inline-block !important; width: 60% !important; }
+.wp-emfluence .basic-fields-adder p button { display: inline-block !important; margin-left: 6px; }
+
+.wp-emfluence .custom-variable-adder p input { width: 60% !important; display: inline-block !important; }
+.wp-emfluence .custom-variable-adder p button { display: inline-block !important; margin-left: 5px; }
+
+/* .wp-emfluence .contact-field label { display: inline !important; }
+.wp-emfluence .contact-field label input.order { width: 20px; } */
 
 /*# sourceMappingURL=widget-settings.css.map */
