@@ -985,14 +985,6 @@ class emfluence_email_signup extends WP_Widget {
             'type' => 'textarea',
             'platform' => 'memo'
         ),
-        //Subrata
-        'ipaddr' => array(
-          'name' => 'IP Address',
-          'required_message' => 'IP Address is required',
-          'label' => 'IP Address:',
-          'type' => 'text',
-          'platform' => 'ipaddr',
-        )
     );
 
     foreach($contact_field_defaults as $name=>$field) {
