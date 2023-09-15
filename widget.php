@@ -587,6 +587,31 @@ class emfluence_email_signup extends WP_Widget {
    * @param $instance
    * @return string
    */
+
+   function form_template_form_fields($instance) {
+    $output = '
+      <h3>' . __('Form Identification') . '</h3>
+      <div class="text_display">
+        <p>
+          <label for="' . $this->get_field_id( 'form_id' ) . '">' . __('Form ID') . ':</label>
+          <input type="text" pattern="[a-zA-Z0-9]" maxlength="20" id="' . $this->get_field_id( 'form_id' ) . '" name="' . $this->get_field_name( 'form_id' ) . '" value="' . $instance['form_id'] . '" style="width:100%;" />
+          Give a meaningful ID for this form. Leave empty if not required. Allowed characters: A-Z, a-z, 0-9.
+        </p>
+
+        <p>
+          <label for="' . $this->get_field_id( 'form_name' ) . '">' . __('Form Name') . ':</label>
+          <input type="text" pattern="[a-zA-Z0-9]" maxlength="30" id="' . $this->get_field_id( 'form_name' ) . '" name="' . $this->get_field_name( 'form_name' ) . '" value="' . $instance['form_name'] . '" style="width:100%;" />
+          Give a meaningful name for this form. Leave empty if not required. Allowed characters: A-Z, a-z, 0-9 and <space>.
+        </p>
+      </div>' . "\n";
+
+      return $output;
+   }
+
+  /**
+   * @param $instance
+   * @return string
+   */
   protected function form_template_notification($instance) {
     $validation = '';
     if(!empty($instance['notify'])) {
@@ -1018,7 +1043,10 @@ class emfluence_email_signup extends WP_Widget {
     $instance = wp_parse_args( (array) $instance, $defaults );
     $groups = emfluence_email_signup::get_groups();
 
-    $output  = $this->form_template_text_display($instance);
+    //Subrata: new fld
+    $output  = $this->form_template_form_fields($instance);
+
+    $output .= $this->form_template_text_display($instance);
     $output .= $this->form_template_groups($instance, $groups);
     $output .= $this->form_template_basic_fields($defaults, $instance);
     $output .= $this->form_template_custom_variables($defaults, $instance);
@@ -1123,6 +1151,10 @@ class emfluence_email_signup extends WP_Widget {
     }
 
     // Clean up the free-form areas
+    // Subrata: new fld
+    $instance['form_name'] = stripslashes($new_instance['form_name']);
+    $instance['form_id'] = stripslashes($new_instance['form_id']);
+
     $instance['title'] = stripslashes($new_instance['title']);
     $instance['text'] = stripslashes($new_instance['text']);
     $instance['begroups'] = stripslashes($new_instance['begroups']);
@@ -1135,6 +1167,10 @@ class emfluence_email_signup extends WP_Widget {
 
     // If the current user isn't allowed to use unfiltered HTML, filter it
     if ( !current_user_can('unfiltered_html') ) {
+      // Subrata: new fld
+      $instance['form_name'] = strip_tags($new_instance['form_name']);
+      $instance['form_id'] = strip_tags($new_instance['form_id']);
+
       $instance['title'] = strip_tags($new_instance['title']);
       $instance['text'] = strip_tags($new_instance['text']);
       $instance['begroups'] = strip_tags($new_instance['begroups']);
