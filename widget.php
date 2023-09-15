@@ -1043,14 +1043,15 @@ class emfluence_email_signup extends WP_Widget {
     $instance = wp_parse_args( (array) $instance, $defaults );
     $groups = emfluence_email_signup::get_groups();
 
-    //Subrata: new fld
-    $output  = $this->form_template_form_fields($instance);
-
-    $output .= $this->form_template_text_display($instance);
+    $output  = $this->form_template_text_display($instance);
     $output .= $this->form_template_groups($instance, $groups);
     $output .= $this->form_template_basic_fields($defaults, $instance);
     $output .= $this->form_template_custom_variables($defaults, $instance);
     $output .= $this->form_template_notification($instance);
+    
+    //Subrata: new fld
+    $output .= $this->form_template_form_fields($instance);
+    
     $extra_sections = apply_filters('emfl_widget_editor_after_sections', $instance, $this);
     if(is_string($extra_sections)) $output .= $extra_sections;
 
