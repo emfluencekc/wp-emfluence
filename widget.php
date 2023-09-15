@@ -595,13 +595,13 @@ class emfluence_email_signup extends WP_Widget {
         <p>
           <label for="' . $this->get_field_id( 'form_id' ) . '">' . __('Form ID') . ':</label>
           <input type="text" pattern="[a-zA-Z0-9]" maxlength="20" id="' . $this->get_field_id( 'form_id' ) . '" name="' . $this->get_field_name( 'form_id' ) . '" value="' . $instance['form_id'] . '" style="width:100%;" />
-          Give a meaningful ID for this form. Leave empty if not required. Allowed characters: A-Z, a-z, 0-9.
+          Give a meaningful ID for this form. Leave empty if not required.
         </p>
 
         <p>
           <label for="' . $this->get_field_id( 'form_name' ) . '">' . __('Form Name') . ':</label>
-          <input type="text" pattern="[a-zA-Z0-9]" maxlength="30" id="' . $this->get_field_id( 'form_name' ) . '" name="' . $this->get_field_name( 'form_name' ) . '" value="' . $instance['form_name'] . '" style="width:100%;" />
-          Give a meaningful name for this form. Leave empty if not required. Allowed characters: A-Z, a-z, 0-9 and <space>.
+          <input type="text" pattern="[a-zA-Z0-9 ]" maxlength="30" id="' . $this->get_field_id( 'form_name' ) . '" name="' . $this->get_field_name( 'form_name' ) . '" value="' . $instance['form_name'] . '" style="width:100%;" />
+          Give a meaningful name for this form. Leave empty if not required.
         </p>
       </div>' . "\n";
 
