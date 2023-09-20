@@ -173,7 +173,7 @@ class emfluence_email_signup extends WP_Widget {
     $title = apply_filters( 'Email Signup', empty( $instance[ 'title' ] ) ? __( 'Email Signup' ) : $instance[ 'title' ] );
     if( $title ) $title = $args['before_title'] . '<span>' . $title . '</span>' . $args['after_title'];
 
-    $output = $args['before_widget'] . '<form id="' . esc_attr($args['widget_id']) . '" class="mail-form" method="post" action="#' . esc_attr($args['widget_id']) . '"><div class="holder"><div class="frame">';
+    $output = $args['before_widget'] . '<form id="' . esc_attr($args['widget_id']) . '" name="' . esc_attr($args['widget_id']) . '" class="mail-form" method="post" action="#' . esc_attr($args['widget_id']) . '"><div class="holder"><div class="frame">';
     $output .= $title;
     $output .= $content;
     $output .= '</div></div></form>' . $args['after_widget'];
