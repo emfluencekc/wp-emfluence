@@ -506,6 +506,10 @@ class emfluence_email_signup extends WP_Widget {
    */
   protected function form_template_groups($instance, $groups) {
 
+    if( ! empty( $instance['begroups'] )) {
+      $group_values = sanitize_text_field( $instance['begroups'] );
+    }
+
     $output = '
       <h3>' . __('Groups') . '</h3>
       <div class="groups">
@@ -514,7 +518,7 @@ class emfluence_email_signup extends WP_Widget {
           <p>
             <input list="emfluence-emailer-groups-list"/>
             <button type="button" onclick="emfluenceEmailerWidget.groups.add(this)">' . __('Add') . '</button>
-            <input class="begroups" type="text" id="' . $this->get_field_id( 'begroups' ) . '" name="' . $this->get_field_name( 'begroups' ) . '" value="' . $instance['begroups'] . '" style="display:none;" />
+            <input class="begroups" type="text" id="' . $this->get_field_id( 'begroups' ) . '" name="' . $this->get_field_name( 'begroups' ) . '" value="' . $group_values . '" style="display:none;" />
           </p>
         </div>
         <div class="selected">' . "\n";
@@ -527,7 +531,7 @@ class emfluence_email_signup extends WP_Widget {
         $output .= '
               <div>
                 <label for="' . $id . '">
-                  <input onclick="emfluenceEmailerWidget.groups.removeGroup(this)" id="' . $id . '" type="checkbox" value="' . $groupID . '" name="groups[]" checked /> ' . $group->groupName . '
+                  <input onclick="emfluenceEmailerWidget.groups.removeGroup(this)" id="' . esc_attr( $id ) . '" type="checkbox" value="' . esc_attr( $groupID ) . '" name="groups[]" checked /> ' . sanitize_text_field( $group->groupName ) . '
                 </label>
               </div>';
       }
@@ -592,13 +596,13 @@ class emfluence_email_signup extends WP_Widget {
       <div class="text_display">
         <p>
           <label for="' . $this->get_field_id( 'form_id' ) . '">' . __('Form ID') . ':</label>
-          <input type="text" maxlength="20" id="' . $this->get_field_id( 'form_id' ) . '" name="' . $this->get_field_name( 'form_id' ) . '" value="' . $instance['form_id'] . '" style="width:100%;" />
+          <input type="text" maxlength="20" id="' . $this->get_field_id( 'form_id' ) . '" name="' . $this->get_field_name( 'form_id' ) . '" value="' . sanitize_text_field( $instance['form_id'] ) . '" style="width:100%;" />
           Give a meaningful ID for this form. Leave empty if not required.
         </p>
 
         <p>
           <label for="' . $this->get_field_id( 'form_name' ) . '">' . __('Form Name') . ':</label>
-          <input type="text" maxlength="30" id="' . $this->get_field_id( 'form_name' ) . '" name="' . $this->get_field_name( 'form_name' ) . '" value="' . $instance['form_name'] . '" style="width:100%;" />
+          <input type="text" maxlength="30" id="' . $this->get_field_id( 'form_name' ) . '" name="' . $this->get_field_name( 'form_name' ) . '" value="' . sanitize_text_field( $instance['form_name'] ) . '" style="width:100%;" />
           Give a meaningful name for this form. Leave empty if not required.
         </p>
       </div>' . "\n";
@@ -1054,7 +1058,7 @@ class emfluence_email_signup extends WP_Widget {
 
     // Output the datalist for groups just once
     if( intval($this->number) >= 0  ) {
-      $output .= '<input type="hidden" id="emfluence_email_signup_instance" value="' . $this->number . '" />';
+      $output .= '<input type="hidden" id="emfluence_email_signup_instance" value="' . sanitize_text_field( $this->number ) . '" />';
       $output .= '<datalist id="emfluence-emailer-groups-list" style="display: none;">';
       foreach ($groups as $group) {
         $output .= '<option>' . $group->groupName . ' [' . $group->groupID . ']' . '</option>';
