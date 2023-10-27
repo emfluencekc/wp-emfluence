@@ -514,9 +514,7 @@ class emfluence_email_signup extends WP_Widget {
           <p>
             <input list="emfluence-emailer-groups-list"/>
             <button type="button" onclick="emfluenceEmailerWidget.groups.add(this)">' . __('Add') . '</button>
-            <!-- Subrata -->
             <input class="begroups" type="text" id="' . $this->get_field_id( 'begroups' ) . '" name="' . $this->get_field_name( 'begroups' ) . '" value="' . $instance['begroups'] . '" style="display:none;" />
-            <!-- Subrata -->
           </p>
         </div>
         <div class="selected">' . "\n";
@@ -886,7 +884,6 @@ class emfluence_email_signup extends WP_Widget {
     $defaults = array(
         'title' => __('Email Signup'),
         'text' => '',
-        //Subrata
         'begroups' => '',
         'redirect' => '',
         'groups' => array(),
@@ -1049,7 +1046,6 @@ class emfluence_email_signup extends WP_Widget {
     $output .= $this->form_template_custom_variables($defaults, $instance);
     $output .= $this->form_template_notification($instance);
     
-    //Subrata: new fld
     $output .= $this->form_template_form_fields($instance);
 
     $extra_sections = apply_filters('emfl_widget_editor_after_sections', $instance, $this);
@@ -1057,8 +1053,7 @@ class emfluence_email_signup extends WP_Widget {
 
 
     // Output the datalist for groups just once
-    // if( intval($this->number) == 0  )
-    if( intval($this->number) >= 0  ) { // Subrata
+    if( intval($this->number) >= 0  ) {
       $output .= '<input type="hidden" id="emfluence_email_signup_instance" value="' . $this->number . '" />';
       $output .= '<datalist id="emfluence-emailer-groups-list" style="display: none;">';
       foreach ($groups as $group) {
@@ -1152,7 +1147,6 @@ class emfluence_email_signup extends WP_Widget {
     }
 
     // Clean up the free-form areas
-    // Subrata: new fld
     $instance['form_name'] = stripslashes($new_instance['form_name']);
     $instance['form_id'] = stripslashes($new_instance['form_id']);
 
@@ -1168,7 +1162,6 @@ class emfluence_email_signup extends WP_Widget {
 
     // If the current user isn't allowed to use unfiltered HTML, filter it
     if ( !current_user_can('unfiltered_html') ) {
-      // Subrata: new fld
       $instance['form_name'] = strip_tags($new_instance['form_name']);
       $instance['form_id'] = strip_tags($new_instance['form_id']);
 
