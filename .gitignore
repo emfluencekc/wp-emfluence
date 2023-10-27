@@ -4,5 +4,8 @@
 .project
 /.idea
 
+# Ignore .bak files
+js/widget-settings.min.js.bak
+
 # Ignore system files
 .DS_Store

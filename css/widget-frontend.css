@@ -1,2 +1,3 @@
-.emfluence_email_signup .message.error{color:red}.emfluence_email_signup .field.row,.emfluence_email_signup .actions.row{padding:0.5em 0}
+/*.emfluence_email_signup .message.error{color:red}.emfluence_email_signup .field.row,.emfluence_email_signup .actions.row{padding:0.5em 0}*/
+.emfluence_email_signup {.message.error {color: red;}.field.row, .actions.row {padding: 0.5em 0;}.field.row label {display: block;}}
 /*# sourceMappingURL=widget-frontend.css.map */
