@@ -197,7 +197,7 @@ class emfluence_email_signup extends WP_Widget {
      * Form processing
      */
 
-    if( !empty($_POST) && ($_POST['action'] == 'email_signup') && ($_POST['form-id'] === $args['widget_id']) ){
+    if( !empty($_POST) && array_key_exists( 'action', $_POST ) && ($_POST['action'] == 'email_signup') && ($_POST['form-id'] === $args['widget_id']) ){
       $defaults = $this->form_get_defaults();
 
       // Set the field values in case there's an error
